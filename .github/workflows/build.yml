@@ -3,16 +3,21 @@ name: Build and Release Harmony APK
 on:
   push:
     branches:
-      - main # Change this to 'master' if your default branch is named master
+      - main
+      - master
+
+# 🟢 THE FIX: Give the robot permission to create releases 🟢
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -20,9 +25,10 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.1' # Match your local Flutter version!
+          # Make sure this matches your local 'flutter --version'
+          flutter-version: '3.44.1' 
+          channel: 'stable'
           
-      # 🟢 THE MAGIC: Recreate the Keystore from GitHub Secrets 🟢
       - name: Decode Keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/harmony-key.jks
         
@@ -37,15 +43,15 @@ jobs:
         run: flutter pub get
         
       - name: Build Signed APK
-        run: flutter build apk --release
+        run: flutter build apk --release --split-per-abi=false
         
-      # 🟢 AUTO-PUBLISH TO GITHUB RELEASES (For Obtainium) 🟢
       - name: Create Release and Upload APK
         uses: ncipollo/release-action@v1
         with:
           artifacts: "build/app/outputs/flutter-apk/app-release.apk"
           tag: "v${{ github.run_number }}" 
           name: "Harmony Revived Build ${{ github.run_number }}"
-          body: "Automated signed build via GitHub Actions."
+          body: "Automated signed build."
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
+          replacesArtifacts: true
