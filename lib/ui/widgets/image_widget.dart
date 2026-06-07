@@ -28,10 +28,10 @@ class ImageWidget extends StatelessWidget {
   final Artist? artist;
   final double size;
 
-  @override
+   @override
   Widget build(BuildContext context) {
     String imageUrl = song != null
-        ? song!.artUri.toString()
+        ? (song!.artUri?.toString() ?? "")
         : playlist != null
             ? playlist!.thumbnailUrl
             : album != null
@@ -39,19 +39,26 @@ class ImageWidget extends StatelessWidget {
                 : artist != null
                     ? artist!.thumbnailUrl
                     : "";
-    // String cacheKey = song != null
-    //     ? "${song!.id}_song"
-    //     : playlist != null
-    //         ? "${playlist!.playlistId}_playlist"
-    //         : album != null
-    //             ? "${album!.browseId}_album"
-    //             : artist != null
-    //                 ? "${artist!.browseId}_artist"
-    //                 : "";
 
-    /// only valid for offline songs
+    /// only valid for offline songs (Original app downloads)
     final bool offlineAvailable =
-        song != null && (song?.extras?["url"] ?? "").contains("file");
+        song != null && (song?.extras?["url"] ?? "").toString().contains("file");
+
+    // 🟢 NEW: Check if the artUri itself is a local file (from our Hybrid Scanner) 🟢
+    final bool isLocalArtFile = imageUrl.startsWith('file:');
+
+    // Helper widget for errors to keep the code clean
+    Widget errorWidget() {
+      return Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.secondary,
+            shape: artist != null ? BoxShape.circle : BoxShape.rectangle,
+            borderRadius: artist != null ? null : BorderRadius.circular(10),
+          ),
+          child: Image.asset(
+              "assets/icons/${song != null ? "song" : artist != null ? "artist" : "album"}.png"));
+    }
 
     return Container(
       height: size,
@@ -61,50 +68,45 @@ class ImageWidget extends StatelessWidget {
         shape: artist != null ? BoxShape.circle : BoxShape.rectangle,
         borderRadius: artist != null ? null : BorderRadius.circular(5),
       ),
-      child: offlineAvailable
+      child: isLocalArtFile
           ? Image.file(
-              File(
-                  "${Get.find<SettingsScreenController>().supportDirPath}/thumbnails/${song!.id}.png"),
+              File(Uri.parse(imageUrl).toFilePath()),
               height: size,
               width: size,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => errorWidget(),
             )
-          : CachedNetworkImage(
-              height: size,
-              width: size,
-              memCacheHeight: (song != null && !isPlayerArtImage) ? 140 : null,
-              //memCacheWidth: (song != null && !isPlayerArtImage)? 140 : null,
-              //cacheKey: cacheKey,
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              errorWidget: (context, url, error) {
-                return Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary,
-                      shape:
-                          artist != null ? BoxShape.circle : BoxShape.rectangle,
-                      borderRadius:
-                          artist != null ? null : BorderRadius.circular(10),
-                    ),
-                    child: Image.asset(
-                        "assets/icons/${song != null ? "song" : artist != null ? "artist" : "album"}.png"));
-              },
-              progressIndicatorBuilder: ((_, __, ___) => Shimmer.fromColors(
-                  baseColor: Colors.grey[500]!,
-                  highlightColor: Colors.grey[300]!,
-                  enabled: true,
-                  direction: ShimmerDirection.ltr,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape:
-                          artist != null ? BoxShape.circle : BoxShape.rectangle,
-                      borderRadius:
-                          artist != null ? null : BorderRadius.circular(10),
-                      color: Colors.white54,
-                    ),
-                  ))),
-            ),
+          : offlineAvailable
+              ? Image.file(
+                  File(
+                      "${Get.find<SettingsScreenController>().supportDirPath}/thumbnails/${song!.id}.png"),
+                  height: size,
+                  width: size,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => errorWidget(),
+                )
+              : CachedNetworkImage(
+                  height: size,
+                  width: size,
+                  memCacheHeight: (song != null && !isPlayerArtImage) ? 140 : null,
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) => errorWidget(),
+                  progressIndicatorBuilder: ((_, __, ___) => Shimmer.fromColors(
+                      baseColor: Colors.grey[500]!,
+                      highlightColor: Colors.grey[300]!,
+                      enabled: true,
+                      direction: ShimmerDirection.ltr,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape:
+                              artist != null ? BoxShape.circle : BoxShape.rectangle,
+                          borderRadius:
+                              artist != null ? null : BorderRadius.circular(10),
+                          color: Colors.white54,
+                        ),
+                      ))),
+                ),
     );
   }
 }

@@ -9,8 +9,31 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
 subprojects {
-    project.evaluationDependsOn(':app')
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                if (namespace == null) {
+                    def manifest = new XmlParser().parse(file("${project.projectDir}/src/main/AndroidManifest.xml"))
+                    namespace = manifest.@package
+                }
+                
+                // 🟢 FORCE JAVA JVM TARGET TO 17 🟢
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        
+        // 🟢 FORCE KOTLIN JVM TARGET TO 17 🟢
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

@@ -201,7 +201,7 @@ class SettingsScreenController extends GetxController {
     exportLocationPath.value = pickedFolderPath;
   }
 
-  Future<void> setDownloadLocation() async {
+    Future<void> setDownloadLocation() async {
     if (!await PermissionService.getExtStoragePermission()) {
       return;
     }
@@ -214,6 +214,9 @@ class SettingsScreenController extends GetxController {
 
     setBox.put("downloadLocationPath", pickedFolderPath);
     downloadLocationPath.value = pickedFolderPath;
+    
+    // 🟢 AUTO-SCAN TRIGGER 🟢
+    _triggerLocalMusicRescan();
   }
 
   void disableTransitionAnimation(bool val) {
@@ -233,10 +236,49 @@ class SettingsScreenController extends GetxController {
     } catch (e) {}
   }
 
-  void resetDownloadLocation() {
+    void resetDownloadLocation() {
     final defaultPath = "$_supportDir/Music";
     setBox.put("downloadLocationPath", defaultPath);
     downloadLocationPath.value = defaultPath;
+    
+    // 🟢 AUTO-SCAN TRIGGER 🟢
+    _triggerLocalMusicRescan();
+  }
+
+    // 🟢 AUTO-SCAN HELPER METHOD 🟢
+    void _triggerLocalMusicRescan() {
+    try {
+      final musicService = Get.find<MusicServices>();
+      
+      musicService.scanLocalMusic().then((newSongs) {
+        // 1. Update the master local list
+        musicService.localSongs.assignAll(newSongs);
+        
+        // 🟢 2. REFRESH THE MAIN LIBRARY UI 🟢
+        try {
+          final libraryCon = Get.find<LibrarySongsController>();
+          
+          // Keep all existing YouTube downloads, but replace the old local songs with the new ones
+          final currentLibrary = libraryCon.librarySongsList.toList();
+          currentLibrary.removeWhere((song) => song.extras?['isLocal'] == true); // Remove old local songs
+          currentLibrary.addAll(newSongs); // Add new local songs
+          
+          libraryCon.librarySongsList.assignAll(currentLibrary);
+        } catch (_) {}
+
+        printINFO("🔄 [AUTO-SCAN] Rescanned and updated main Library!");
+        
+        Get.snackbar(
+          "Library Updated", 
+          "Found ${newSongs.length} local songs",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.grey[850],
+          colorText: Colors.white,
+        );
+      });
+    } catch (e) {
+      printINFO("⚠️ [AUTO-SCAN] Failed to trigger rescan: $e");
+    }
   }
 
   void onThemeChange(dynamic val) {

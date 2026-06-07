@@ -450,11 +450,35 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         super.stop();
         break;
 
-      case 'playByIndex':
+              case 'playByIndex':
         final songIndex = extras!['index'];
         currentIndex = songIndex;
-        final isNewUrlReq = extras['newUrl'] ?? false;
         final currentSong = queue.value[currentIndex];
+
+        // 🟢 LOCAL FILE INTERCEPT 🟢
+        if (currentSong.extras?['isLocal'] == true) {
+          isPlayingUsingLockCachingSource = false;
+          isSongLoading = true;
+          playbackState.add(playbackState.value.copyWith(processingState: AudioProcessingState.loading));
+          if (_playList.children.isNotEmpty) {
+            await _playList.clear();
+          }
+          mediaItem.add(currentSong);
+          
+          final localUri = currentSong.extras!['localPath'] as String;
+          currentSongUrl = localUri;
+          currentSong.extras!['url'] = localUri; 
+          
+          await _playList.add(AudioSource.uri(Uri.parse(localUri), tag: currentSong));
+          
+          isSongLoading = false;
+          playbackState.add(playbackState.value.copyWith(queueIndex: currentIndex));
+          await _player.play();
+          return; 
+        }
+        // ---------------------------------
+
+        final isNewUrlReq = extras['newUrl'] ?? false;
         final futureStreamInfo =
             checkNGetUrl(currentSong.id, generateNewUrl: isNewUrlReq);
         final bool restoreSession = extras['restoreSession'] ?? false;
@@ -541,8 +565,29 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
         }
         break;
 
-      case 'setSourceNPlay':
+              case 'setSourceNPlay':
         final currMed = (extras!['mediaItem'] as MediaItem);
+
+        // 🟢 LOCAL FILE INTERCEPT 🟢
+        if (currMed.extras?['isLocal'] == true) {
+          isPlayingUsingLockCachingSource = false;
+          isSongLoading = true;
+          currentIndex = 0;
+          await _playList.clear();
+          mediaItem.add(currMed);
+          queue.add([currMed]);
+          
+          final localUri = currMed.extras!['localPath'] as String;
+          currentSongUrl = localUri;
+          currMed.extras!['url'] = localUri;
+          
+          await _playList.add(AudioSource.uri(Uri.parse(localUri), tag: currMed));
+          isSongLoading = false;
+          await _player.play();
+          return; 
+        }
+        // ---------------------------------
+
         final futureStreamInfo = checkNGetUrl(currMed.id);
         isSongLoading = true;
         currentIndex = 0;

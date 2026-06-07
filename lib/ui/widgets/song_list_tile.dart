@@ -12,7 +12,7 @@ import 'add_to_playlist.dart';
 import 'image_widget.dart';
 import 'snackbar.dart';
 import 'songinfo_bottom_sheet.dart';
-
+import 'package:on_audio_query/on_audio_query.dart';
 class SongListTile extends StatelessWidget with RemoveSongFromPlaylistMixin {
   const SongListTile(
       {super.key,
@@ -139,10 +139,27 @@ class SongListTile extends StatelessWidget with RemoveSongFromPlaylistMixin {
                       ),
                     ),
                   )
-                : ImageWidget(
-                    size: 55,
-                    song: song,
-                  ),
+                                : song.extras?['isLocal'] == true
+                    ? QueryArtworkWidget(
+                        id: song.extras!['audioQueryId'],
+                        type: ArtworkType.AUDIO,
+                        artworkWidth: 55,
+                        artworkHeight: 55,
+                        artworkFit: BoxFit.cover,
+                        nullArtworkWidget: Container(
+                          width: 55,
+                          height: 55,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800], // Matches dark theme
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Icon(Icons.music_note, color: Colors.white54, size: 30),
+                        ),
+                      )
+                    : ImageWidget(
+                        size: 55,
+                        song: song,
+                      ),
             title: Marquee(
               delay: const Duration(milliseconds: 300),
               duration: const Duration(seconds: 5),
@@ -176,11 +193,13 @@ class SongListTile extends StatelessWidget with RemoveSongFromPlaylistMixin {
                                   )
                                 : const SizedBox.shrink()),
                       Text(
-                        song.extras!['length'] ?? "",
+                        song.extras?['length']?.toString() ?? "",
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                     ],
                   ),
+
+                  
                   if (GetPlatform.isDesktop)
                     IconButton(
                         splashRadius: 20,

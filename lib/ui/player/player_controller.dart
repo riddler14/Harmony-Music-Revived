@@ -735,17 +735,35 @@ class PlayerController extends GetxController
     if ((lyrics["synced"].isEmpty && lyrics['plainLyrics'].isEmpty) &&
         showLyricsflag.value) {
       isLyricsLoading.value = true;
+      
+      final song = currentSong.value;
+      if (song == null) {
+        isLyricsLoading.value = false;
+        return;
+      }
+
+      // 🟢 LOCAL LYRICS INTERCEPT (For .m4a files with .lrc sidecars) 🟢
+      if (song.extras?['isLocal'] == true && song.extras?['lyrics'] != null) {
+        final localLrc = song.extras!['lyrics'].toString();
+        // .lrc files contain synced timestamps. We map it to the "synced" key so the UI parser reads it.
+        lyrics.value = {"synced": localLrc, "plainLyrics": ""};
+        isLyricsLoading.value = false;
+        printINFO("📝 [LYRICS] Loaded offline .lrc for: ${song.title}");
+        return; // Exit early, do not call YouTube/API
+      }
+      // -------------------------------------------------------------
+
       try {
         final Map<String, dynamic>? lyricsR =
             await SyncedLyricsService.getSyncedLyrics(
-                currentSong.value!, progressBarStatus.value.total.inSeconds);
+                song, progressBarStatus.value.total.inSeconds);
         if (lyricsR != null) {
           lyrics.value = lyricsR;
           isLyricsLoading.value = false;
           return;
         }
         final related = await _musicServices.getWatchPlaylist(
-            videoId: currentSong.value!.id, onlyRelated: true);
+            videoId: song.id, onlyRelated: true);
         final relatedLyricsId = related['lyrics'];
         if (relatedLyricsId != null) {
           final lyrics_ = await _musicServices.getLyrics(relatedLyricsId);

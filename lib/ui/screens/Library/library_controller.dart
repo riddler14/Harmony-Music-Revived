@@ -7,7 +7,7 @@ import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
-
+import '/services/music_service.dart';
 import '../../../utils/house_keeping.dart';
 import '../../widgets/add_to_playlist.dart';
 import '/ui/widgets/sort_widget.dart';
@@ -67,15 +67,37 @@ class LibrarySongsController extends GetxController {
         .whereType<MediaItem>()
         .toList();
 
-    librarySongsList.addAll(Hive.box("SongDownloads")
+        librarySongsList.addAll(Hive.box("SongDownloads")
         .values
         .map<MediaItem?>((item) => MediaItemBuilder.fromJson(item))
         .whereType<MediaItem>()
         .toList());
+        
+    isSongFetched.value = true;
+
+    // 1. Let the app clean up expired YouTube downloads FIRST
+    startHouseKeeping();
+
+    // 🟢 2. INJECT LOCAL SONGS *AFTER* HOUSEKEEPING 🟢
+    // This ensures the cleanup script doesn't accidentally wipe our local files!
+    try {
+      final musicService = Get.find<MusicServices>();
+      
+      if (musicService.localSongs.isEmpty) {
+        final scannedSongs = await musicService.scanLocalMusic();
+        musicService.localSongs.assignAll(scannedSongs);
+      }
+      
+      librarySongsList.addAll(musicService.localSongs);
+      printINFO("✅ Injected ${musicService.localSongs.length} local songs into Library UI.");
+    } catch (e) {
+      printINFO("⚠️ Couldn't load local songs into library: $e");
+    }
+
     isSongFetched.value = true;
 
     //Remove deleted songs and expired songUrl from database
-    startHouseKeeping();
+    
   }
 
   void onSort(SortType sortType, bool isAscending) {
@@ -108,6 +130,11 @@ class LibrarySongsController extends GetxController {
       tempListContainer.remove(item);
     }
     librarySongsList.remove(item);
+
+     if (item.extras?['isLocal'] == true) {
+      printINFO("⚠️ Skipped deleting local device file: ${item.title}");
+      return; 
+    }
     String filePath = "";
     if (isDownloaded) {
       filePath = item.extras!['url'] ?? url;
@@ -173,10 +200,17 @@ class LibrarySongsController extends GetxController {
     }
   }
 
-  Future<void> deleteMultipleSongs(List<MediaItem> songs) async {
+    Future<void> deleteMultipleSongs(List<MediaItem> songs) async {
     final downloadsBox = await Hive.openBox("SongDownloads");
     final cacheBox = await Hive.openBox("SongsCache");
     for (MediaItem element in songs) {
+      
+      // 🟢 SAFETY CHECK FOR BULK DELETE 🟢
+      if (element.extras?['isLocal'] == true) {
+        librarySongsList.remove(element); // Just remove from UI, don't touch files
+        continue;
+      }
+
       if (downloadsBox.containsKey(element.id)) {
         await downloadsBox.delete(element.id);
         removeSong(element, true);
