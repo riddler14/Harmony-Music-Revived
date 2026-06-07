@@ -328,7 +328,7 @@ class MusicServices extends getx.GetxService {
             foundSongs.add(MediaItem(
               id: "local_${entity.path.hashCode}", 
               title: title,
-              artist: matchedSong?.artist ?? "Local Download",
+              artist: (matchedSong?.artist != null && matchedSong!.artist!.trim().isNotEmpty) ? matchedSong!.artist : "Local Download",
               album: matchedSong?.album ?? "Offline Library",
               artUri: artUri,
               extras: {
