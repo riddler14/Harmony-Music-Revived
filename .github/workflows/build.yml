@@ -20,7 +20,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0' # Match your local Flutter version!
+          flutter-version: '3.44.1' # Match your local Flutter version!
           
       # 🟢 THE MAGIC: Recreate the Keystore from GitHub Secrets 🟢
       - name: Decode Keystore
