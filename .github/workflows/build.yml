@@ -6,7 +6,7 @@ on:
       - main
       - master
 
-# 🟢 THE FIX: Give the robot permission to create releases 🟢
+# 🟢 Give the robot permission to create releases 🟢
 permissions:
   contents: write
 
@@ -25,7 +25,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # Make sure this matches your local 'flutter --version'
+          # 🟢 MAKE SURE THIS MATCHES YOUR LOCAL 'flutter --version'! 🟢
           flutter-version: '3.44.1' 
           channel: 'stable'
           
@@ -42,8 +42,9 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
         
+      # 🟢 THE FIX: Removed '=false' from the flag 🟢
       - name: Build Signed APK
-        run: flutter build apk --release --split-per-abi=false
+        run: flutter build apk --release
         
       - name: Create Release and Upload APK
         uses: ncipollo/release-action@v1
