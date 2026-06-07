@@ -70,3 +70,5 @@ android/app/.cxx/Debug/*
 
 /android/app/.cxx
 
+key.properties
+*.jks
