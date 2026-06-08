@@ -91,14 +91,41 @@ class PlaylistScreen extends StatelessWidget {
                                 )
                               ],
                             ),
-                            child: CachedNetworkImage(
-                              imageUrl: Thumbnail(playlistController
-                                      .playlist.value.thumbnailUrl)
-                                  .extraHigh,
-                              fit: landscape ? BoxFit.fitHeight : BoxFit.cover,
-                              width: landscape ? null : size.width,
-                              height: landscape ? size.height : size.width,
-                            ),
+                                                        child: Builder(builder: (context) {
+                              final String? thumbUrl = playlistController.playlist.value.thumbnailUrl;
+                              final bool isValidWebUrl = thumbUrl != null && 
+                                                         thumbUrl.isNotEmpty && 
+                                                         (thumbUrl.startsWith('http://') || thumbUrl.startsWith('https://'));
+                              
+                              if (!isValidWebUrl) {
+                                // Fallback for local files, null, or invalid URLs
+                                return Container(
+                                  width: landscape ? null : size.width,
+                                  height: landscape ? size.height : size.width,
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                 child: Icon(
+  Icons.music_note,
+  size: 64,
+  color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+), // ✅ FIXED
+                                );
+                              }
+                              
+                              return CachedNetworkImage(
+                                imageUrl: Thumbnail(thumbUrl).extraHigh,
+                                fit: landscape ? BoxFit.fitHeight : BoxFit.cover,
+                                width: landscape ? null : size.width,
+                                height: landscape ? size.height : size.width,
+                                errorWidget: (_, __, ___) => Container(
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  child: Icon(
+  Icons.music_note,
+  size: 64,
+  color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+), // ✅ FIXED
+                                ),
+                              );
+                            }),
                           ),
                         );
                       }))

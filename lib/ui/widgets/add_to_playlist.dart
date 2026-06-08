@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:widget_marquee/widget_marquee.dart';
-
+import 'package:harmonymusic/utils/helper.dart';
 import '../../services/piped_service.dart';
 import '/models/media_Item_builder.dart';
 import '/ui/widgets/create_playlist_dialog.dart';
@@ -199,24 +199,32 @@ class AddToPlaylistController extends GetxController {
     playlists.value = val == "piped" ? pipedPlaylists : localPlaylists;
   }
 
-  Future<bool> addSongsToPlaylist(
+   Future<bool> addSongsToPlaylist(
       List<MediaItem> songs, String playlistId, BuildContext context) async {
     additionInProgress.value = true;
     if (playlistType.value == "local") {
-      final plstBox = await Hive.openBox(playlistId);
-      final playlistSongIds = plstBox.values.map((item) => item['videoId']);
-      for (MediaItem element in songs) {
-        if (!playlistSongIds.contains(element.id)) {
-          await plstBox.add(MediaItemBuilder.toJson(element));
+      try {
+        final plstBox = await Hive.openBox(playlistId);
+        final playlistSongIds = plstBox.values.map((item) => item['videoId']).toSet();
+        
+        for (MediaItem element in songs) {
+          if (!playlistSongIds.contains(element.id)) {
+            // 🟢 SAFE WRITE - toJson is already safe from our previous fix
+            await plstBox.add(MediaItemBuilder.toJson(element));
+          }
         }
+        await plstBox.close();
+        additionInProgress.value = false;
+        return true;
+      } catch (e) {
+        debugPrint("⚠️ [ADD_TO_PLAYLIST] Local add failed: $e");
+        additionInProgress.value = false;
+        return false;
       }
-      await plstBox.close();
-      additionInProgress.value = false;
-      return true;
     } else {
+      // Piped logic remains the same...
       final videosId = songs.map((e) => e.id).toList();
-      final res =
-          await Get.find<PipedServices>().addToPlaylist(playlistId, videosId);
+      final res = await Get.find<PipedServices>().addToPlaylist(playlistId, videosId);
       additionInProgress.value = false;
       return (res.code == 1);
     }

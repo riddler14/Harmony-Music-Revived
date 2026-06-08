@@ -297,8 +297,8 @@ class PlayerController extends GetxController
         final songList = (prevSessionData.get("queue") as List)
             .map((e) => MediaItemBuilder.fromJson(e))
             .toList();
-        final int currentIndex = prevSessionData.get("index");
-        final int position = prevSessionData.get("position");
+              final int currentIndex = prevSessionData.get("index") ?? 0;
+        final int position = prevSessionData.get("position") ?? 0;
         prevSessionData.close();
         await _audioHandler.addQueueItems(songList);
         _playerPanelCheck(restoreSession: true);

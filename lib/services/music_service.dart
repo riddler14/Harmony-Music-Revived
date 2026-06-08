@@ -2,7 +2,7 @@
 import 'dart:io'; 
 import 'dart:typed_data'; 
 import 'package:path_provider/path_provider.dart'; 
-import '/ui/screens/Settings/settings_screen_controller.dart'; 
+
 import 'dart:convert';
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
@@ -66,44 +66,10 @@ class MusicServices extends getx.GetxService {
   }
 
   // --- SAFE HELPER FUNCTIONS ---
-  String _safeStr(dynamic val, [String fallback = 'Unknown']) {
-    if (val == null) return fallback;
-    return val.toString();
-  }
 
-  int _safeDuration(dynamic dur) {
-    if (dur == null) return 0;
-    if (dur is int) return dur;
-    if (dur is String) {
-      try {
-        final parts = dur.split(':');
-        if (parts.length == 2) {
-          return int.parse(parts[0]) * 60 + int.parse(parts[1]);
-        } else if (parts.length == 3) {
-          return int.parse(parts[0]) * 3600 + int.parse(parts[1]) * 60 + int.parse(parts[2]);
-        }
-      } catch (_) {}
-    }
-    return 0;
-  }
 
-  String? _safeThumbUrl(dynamic thumbnails) {
-    try {
-      if (thumbnails != null && thumbnails is List && thumbnails.isNotEmpty) {
-        return thumbnails.last.url?.toString();
-      }
-    } catch (_) {}
-    return null;
-  }
 
-  String _safeArtistNames(dynamic artists) {
-    try {
-      if (artists != null && artists is List && artists.isNotEmpty) {
-        return artists.map((a) => a.name ?? 'Unknown').join(', ');
-      }
-    } catch (_) {}
-    return 'Unknown Artist';
-  }
+
   // -----------------------------
 
   Future<void> init() async {
@@ -180,9 +146,16 @@ class MusicServices extends getx.GetxService {
       } else {
         return _sendRequest(action, data, additionalParams: additionalParams);
       }
-    } on DioException catch (e) {
-      printINFO("Error $e");
-      throw NetworkError();
+      } on DioException catch (e) {
+      // 🟢 SAFE ERROR HANDLING 🟢
+      final errorMsg = e.response?.data?['error'] ?? 
+                       e.message ?? 
+                       "Unknown network error";
+      printINFO("⚠️ [NETWORK] Request failed for $action: $errorMsg");
+      
+      // Don't throw a generic NetworkError() that crashes the UI.
+      // Return an empty map or rethrow with context so the caller can handle it gracefully.
+      throw Exception("Network request failed: $errorMsg");
     }
   }
 
@@ -611,6 +584,7 @@ class MusicServices extends getx.GetxService {
 
     try {
       // 1. SONGS
+            // 1. SONGS
       if (filter == null || filter == 'songs') {
         try {
           final songs = await _ytmusic.searchSongs(query);
@@ -624,14 +598,29 @@ class MusicServices extends getx.GetxService {
             } catch (_) {}
             
             final int durSeconds = song.duration ?? 0;
+            final String artistName = song.artist?.name ?? 'Unknown Artist';
+            final String albumName = song.album?.name ?? 'Unknown Album';
+
             return MediaItem(
               id: song.videoId ?? '', 
               title: song.name ?? 'Unknown Title', 
-              artist: song.artist?.name ?? 'Unknown Artist',
-              album: song.album?.name ?? 'Unknown Album', 
+              artist: artistName,
+              album: albumName, 
               artUri: Uri.tryParse(thumbUrl), 
               duration: Duration(seconds: durSeconds),
-              extras: {'length': _formatTime(durSeconds)}, 
+              // 🟢 THE FIX: PACK THE FULL BACKPACK FOR HOME/SEARCH SONGS 🟢
+                           extras: {
+                'length': _formatTime(durSeconds),
+                'url': null, 
+                'album': {'name': albumName}, // ✅ FIXED
+                'artists': [{'name': artistName}], // ✅ FIXED
+                'date': '',
+                'trackDetails': '',
+                'year': '',
+                'isLocal': false,
+                'localPath': null,
+                'lyrics': null,
+              }, 
             );
           }).toList();
         } catch (e) { printINFO("Songs error: $e"); }
@@ -651,13 +640,27 @@ class MusicServices extends getx.GetxService {
             } catch (_) {}
             
             final int durSeconds = video.duration ?? 0;
+            final String artistName = video.artist?.name ?? 'Unknown Artist';
+
             return MediaItem(
               id: video.videoId ?? '', 
               title: video.name ?? 'Unknown Title', 
-              artist: video.artist?.name ?? 'Unknown Artist', 
+              artist: artistName, 
               artUri: Uri.tryParse(thumbUrl), 
               duration: Duration(seconds: durSeconds),
-              extras: {'length': _formatTime(durSeconds)}, 
+              // 🟢 THE FIX: PACK THE FULL BACKPACK FOR VIDEOS TOO 🟢
+                           extras: {
+                'length': _formatTime(durSeconds),
+                'url': null,
+                'album': null,
+                'artists': [{'name': artistName}], // ✅ FIXED
+                'date': '',
+                'trackDetails': '',
+                'year': '',
+                'isLocal': false,
+                'localPath': null,
+                'lyrics': null,
+              }, 
             );
           }).toList();
         } catch (e) { printINFO("Videos error: $e"); }

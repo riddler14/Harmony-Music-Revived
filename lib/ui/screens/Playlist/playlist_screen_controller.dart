@@ -84,7 +84,15 @@ class PlaylistScreenController extends PlaylistAlbumScreenControllerBase
     if (!isIdOnly && !playlist_.isCloudPlaylist) {
       playlist.value = playlist_;
       _animationController.forward();
-      fetchSongsfromDatabase(playlistId);
+            // 🟢 SAFE FETCH WITHOUT AWAIT 🟢
+      // Since fetchSongsfromDatabase is void, we call it directly.
+      // Errors will be caught internally or handled by the UI state.
+      try {
+        fetchSongsfromDatabase(playlistId);
+      } catch (e) {
+        printERROR("⚠️ [PLAYLIST] Sync error during fetch: $e");
+        songList.clear();
+      }
       isContentFetched.value = true;
 
       Future.delayed(
@@ -269,9 +277,15 @@ class PlaylistScreenController extends PlaylistAlbumScreenControllerBase
     }
 
     Playlist updatedplaylist;
-    if (songList.isNotEmpty) {
+        if (songList.isNotEmpty) {
+      // 🟢 ONLY USE WEB URLS FOR PLAYLIST THUMBNAILS 🟢
+      // Local file:// paths crash the Thumbnail parser and NetworkImage widgets
+      String? thumbUrl = songList[0].artUri?.toString();
+      if (thumbUrl != null && thumbUrl.startsWith('file:')) {
+        thumbUrl = Playlist.thumbPlaceholderUrl; // Use placeholder for local songs
+      }
       updatedplaylist =
-          currentPlaylist.copyWith(thumbnailUrl: songList[0].artUri.toString());
+          currentPlaylist.copyWith(thumbnailUrl: thumbUrl ?? Playlist.thumbPlaceholderUrl);
     } else {
       updatedplaylist =
           currentPlaylist.copyWith(thumbnailUrl: Playlist.thumbPlaceholderUrl);
@@ -508,9 +522,17 @@ class PlaylistScreenController extends PlaylistAlbumScreenControllerBase
           : '';
       
       // Format duration as HH:MM:SS or MM:SS
-      final duration = song.duration != null
-          ? _formatDuration(song.duration!)
-          : '';
+           // 🟢 SAFE DURATION FORMATTING 🟢
+      String duration = '';
+      try {
+        if (song.duration != null) {
+          duration = _formatDuration(song.duration!);
+        } else {
+          // Fallback to extras length string if duration object is null
+          final len = song.extras?['length']?.toString() ?? '';
+          duration = len;
+        }
+      } catch (_) {}
       
       final thumbnailUrl = _escapeCsvField(song.artUri.toString());
       

@@ -13,6 +13,7 @@ import 'image_widget.dart';
 import 'snackbar.dart';
 import 'songinfo_bottom_sheet.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+
 class SongListTile extends StatelessWidget with RemoveSongFromPlaylistMixin {
   const SongListTile(
       {super.key,
@@ -128,38 +129,10 @@ class SongListTile extends StatelessWidget with RemoveSongFromPlaylistMixin {
               ).whenComplete(() => Get.delete<SongInfoController>());
             },
             contentPadding: const EdgeInsets.only(top: 0, left: 5, right: 30),
-            leading: thumbReplacementWithIndex
-                ? SizedBox(
-                    width: 27.5,
-                    height: 55,
-                    child: Center(
-                      child: Text(
-                        "$index.",
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  )
-                                : song.extras?['isLocal'] == true
-                    ? QueryArtworkWidget(
-                        id: song.extras!['audioQueryId'],
-                        type: ArtworkType.AUDIO,
-                        artworkWidth: 55,
-                        artworkHeight: 55,
-                        artworkFit: BoxFit.cover,
-                        nullArtworkWidget: Container(
-                          width: 55,
-                          height: 55,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[800], // Matches dark theme
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Icon(Icons.music_note, color: Colors.white54, size: 30),
-                        ),
-                      )
-                    : ImageWidget(
-                        size: 55,
-                        song: song,
-                      ),
+            
+            // 🟢 CLEAN SINGLE LEADING PROPERTY USING HELPER METHOD 🟢
+            leading: _buildLeadingArt(context),
+            
             title: Marquee(
               delay: const Duration(milliseconds: 300),
               duration: const Duration(seconds: 5),
@@ -198,8 +171,6 @@ class SongListTile extends StatelessWidget with RemoveSongFromPlaylistMixin {
                       ),
                     ],
                   ),
-
-                  
                   if (GetPlatform.isDesktop)
                     IconButton(
                         splashRadius: 20,
@@ -228,5 +199,51 @@ class SongListTile extends StatelessWidget with RemoveSongFromPlaylistMixin {
             ),
           ),
         ));
+  }
+
+  // 🟢 HELPER METHOD: Cleanly handles the Album Art logic without nested ternaries 🟢
+  Widget _buildLeadingArt(BuildContext context) {
+    // 1. Handle Album/Playlist track numbers
+    if (thumbReplacementWithIndex) {
+      return SizedBox(
+        width: 27.5,
+        height: 55,
+        child: Center(
+          child: Text(
+            "$index.",
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+      );
+    }
+
+    // 2. Check if it's a local song with a valid MediaStore ID
+    final bool isLocal = song.extras?['isLocal'] == true;
+    final dynamic queryId = song.extras?['audioQueryId'];
+
+    if (isLocal && queryId is int) {
+      return QueryArtworkWidget(
+        id: queryId,
+        type: ArtworkType.AUDIO,
+        artworkWidth: 55,
+        artworkHeight: 55,
+        artworkFit: BoxFit.cover,
+        nullArtworkWidget: Container(
+          width: 55,
+          height: 55,
+          decoration: BoxDecoration(
+            color: Colors.grey[800],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Icon(Icons.music_note, color: Colors.white54, size: 30),
+        ),
+      );
+    }
+
+    // 3. Fallback for YouTube songs OR local songs missing the queryId (Playlist songs)
+    return ImageWidget(
+      size: 55,
+      song: song,
+    );
   }
 }
