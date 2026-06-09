@@ -1,6 +1,6 @@
 <div align="center">
 
-# ❗**This repository is no longer maintained.**
+# ❗**This repository is maintained by me for personal and closed-circle use.**
 
 </div>
 
