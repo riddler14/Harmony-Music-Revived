@@ -1,67 +1,59 @@
-name: Build Windows exe 
+name: Build Windows Portable
 on: 
   workflow_dispatch: # Manual button
   push:
     tags:
-      - 'win-*' # 🟢 ONLY triggers when you push a tag starting with 'win-'
+      - 'win-*' # Triggers on tags like win-search-fix-1
   
 jobs:
-  build-windows-exe:
+  build-windows:
     runs-on: windows-latest
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           flutter-version: '3.24.2'
-      
-      - name: Install InnoSetup
-        run: choco install innosetup -y
+          
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
 
       - name: Update lang data
         run: dart localization/generator.dart
 
-      - name: Set update check flag to true
-        working-directory: "${{ github.workspace }}/lib/utils"
+      - name: Set update check flag
+        working-directory: "lib/utils"
         run: echo "const updateCheckFlag = true;" > update_check_flag_file.dart
         
-      - name: Build windows exe package
-        run: |
-          flutter clean
-          flutter pub get
-          dart pub global activate flutter_distributor
-          flutter_distributor package --platform windows --targets exe
+      - name: Get Dependencies
+        run: flutter pub get
 
-      - name: Find .exe file
-        id: find_exe
+      # 🟢 NATIVE FLUTTER BUILD (Bypasses flutter_distributor) 🟢
+      - name: Build Windows App
+        run: flutter build windows --release
+
+      # 🟢 ZIP THE PORTABLE APP 🟢
+      - name: Zip the Portable App
         shell: pwsh
         run: |
-          # 🟢 FIXED: Safer recursive search for the .exe file
-          $exeFile = Get-ChildItem -Path "${{ github.workspace }}/dist" -Recurse -Filter "*.exe" | Select-Object -First 1
-          if ($exeFile) {
-              Write-Output "Found .exe file: $($exeFile.FullName)"
-              # 🟢 FIXED: Updated to modern GitHub Actions output syntax
-              echo "exe_path=$($exeFile.FullName)" >> $env:GITHUB_OUTPUT
-          } else {
-              Write-Error "No .exe files found in the dist directory."
-              exit 1
-          }
-          
-      # 🟢 REMOVED: All osslsigncode and DigiCert signing steps (Since you don't have the paid certs) 🟢
+          # Zips the compiled app folder into a clean download
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "HarmonyMusic-Windows-Portable.zip"
 
-      - name: Upload to GitHub Release (If triggered by Tag)
+      # 🟢 UPLOAD TO RELEASE (If triggered by Tag) 🟢
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{ steps.find_exe.outputs.exe_path }}
+          files: HarmonyMusic-Windows-Portable.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Artifact (If triggered manually)
+      # 🟢 UPLOAD AS ARTIFACT (If triggered manually) 🟢
+      - name: Upload Artifact
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Harmony-Music-Windows-x64
-          path: ${{ steps.find_exe.outputs.exe_path }}
+          name: HarmonyMusic-Windows-Portable
+          path: HarmonyMusic-Windows-Portable.zip
