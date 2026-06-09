@@ -8,9 +8,7 @@ import '../../utils/theme_controller.dart';
 import '../player_controller.dart';
 
 class BackgroudImage extends StatelessWidget {
-  const BackgroudImage({super.key, this.cacheHeight});
-
-  final int? cacheHeight;
+  const BackgroudImage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +24,6 @@ class BackgroudImage extends StatelessWidget {
         return SizedBox.expand(
           child: isLocalArt
               ? Builder(builder: (context) {
-                  // 🟢 USE THE HIGH-RES EMBEDDED ARTWORK FROM artUri 🟢
                   final imgFile = File(Uri.parse(artUriStr).toFilePath());
                   return FutureBuilder(
                     future: imgFile.exists(),
@@ -39,8 +36,8 @@ class BackgroudImage extends StatelessWidget {
                         }
                         return Image.file(
                           imgFile,
-                          // 🟢 REMOVED cacheHeight to allow Full HD rendering! 🟢
                           fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high, // 🟢 FORCES HD SCALING
                         );
                       }
                       return const SizedBox.shrink();
@@ -49,7 +46,6 @@ class BackgroudImage extends StatelessWidget {
                 })
               : isLegacyOffline
                   ? Builder(builder: (context) {
-                      // Fallback for older downloaded YouTube songs
                       final imgFile = File("${Get.find<SettingsScreenController>().supportDirPath}/thumbnails/${song.id}.png");
                       return FutureBuilder(
                         future: imgFile.exists(),
@@ -62,8 +58,8 @@ class BackgroudImage extends StatelessWidget {
                             }
                             return Image.file(
                               imgFile,
-                              // 🟢 REMOVED cacheHeight here too! 🟢
                               fit: BoxFit.cover,
+                              filterQuality: FilterQuality.high, // 🟢 FORCES HD SCALING
                             );
                           }
                           return const SizedBox.shrink();
@@ -71,9 +67,11 @@ class BackgroudImage extends StatelessWidget {
                       );
                     })
                   : CachedNetworkImage(
-                      // 🟢 REMOVED memCacheHeight to allow Full HD rendering! 🟢
                       imageUrl: artUriStr ?? '',
                       cacheKey: "${song.id}_song",
+                      memCacheWidth: null,
+                      memCacheHeight: null,
+                      // 🟢 REMOVED maxWidthDiskCache/maxHeightDiskCache to save the raw HD file!
                       imageBuilder: (context, imageProvider) {
                         if (Get.find<SettingsScreenController>().themeModetype.value == ThemeType.dynamic) {
                           Future.delayed(
@@ -84,6 +82,7 @@ class BackgroudImage extends StatelessWidget {
                         return Image(
                           image: imageProvider,
                           fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high, // 🟢 FORCES HD SCALING
                         );
                       },
                       errorWidget: (context, url, error) => const SizedBox.shrink(),

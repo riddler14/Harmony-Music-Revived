@@ -37,15 +37,14 @@ class StandardPlayer extends StatelessWidget {
       children: [
         /// Stack first child
         /// Album art image in background covering the whole screen
-        BackgroudImage(
+           BackgroudImage(
           key: Key("${playerController.currentSong.value?.id}_background"),
-          
         ),
 
         /// Stack child
         /// Blur effect on background
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+              BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0), // 🟢 Crisp but keeps the aura effect
           child: Stack(
             children: [
               /// opacity effect on background
