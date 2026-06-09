@@ -85,11 +85,26 @@ class SettingsScreenController extends GetxController {
       // Note: Using anandnet/HarmonyMusic based on your package name logs
       final response = await dio.get("https://api.github.com/repos/riddler14/Harmony-Music-Revived/releases/latest");
       
-      if (response.statusCode == 200) {
+            if (response.statusCode == 200) {
         final data = response.data;
         String latestTag = data['tag_name'].toString().replaceFirst('v', '').replaceFirst('V', '');
         String releaseUrl = data['html_url'].toString();
         String releaseName = data['name']?.toString() ?? "New Update";
+        
+        // 🟢 CROSS-PLATFORM SAFETY CHECK 🟢
+        final assets = data['assets'] as List;
+        final hasApk = assets.any((asset) => asset['name'].toString().toLowerCase().contains('.apk'));
+        
+        // If we are on Android, but the latest release ONLY has Windows/Linux files, ignore it!
+        if (GetPlatform.isAndroid && !hasApk) {
+          printINFO("⚠️ [UPDATE] Latest release is for Desktop only. Skipping Android prompt.");
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              snackbar(context, "You are on the latest Android version! ($currentVer)", size: SanckBarSize.MEDIUM)
+            );
+          }
+          return; 
+        }
         
         // 3. Compare versions
         if (latestTag != currentVer) {
