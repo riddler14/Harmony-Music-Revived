@@ -61,32 +61,65 @@ class SongsLibraryWidget extends StatelessWidget {
                   libSongsController.cancelAdditionalOperation,
             );
           }),
-          GetX<LibrarySongsController>(builder: (controller) {
-            return controller.librarySongsList.isNotEmpty
-                ? (controller.additionalOperationMode.value ==
-                        OperationMode.none
-                    ? ListWidget(
-                        controller.librarySongsList,
-                        "library Songs",
-                        true,
-                        isPlaylistOrAlbum: true,
-                        playlist: Playlist(
-                            title: "Library Songs",
-                            playlistId: "SongsDownloads",
-                            thumbnailUrl: "",
-                            isCloudPlaylist: false),
-                      )
-                    : ModificationList(
-                        mode: controller.additionalOperationMode.value,
-                        screenController: controller,
-                      ))
-                : Expanded(
-                    child: Center(
-                        child: Text(
+                    GetX<LibrarySongsController>(builder: (controller) {
+            // 1. If we have songs, show the normal list or modification list
+            if (controller.librarySongsList.isNotEmpty) {
+              return controller.additionalOperationMode.value == OperationMode.none
+                  ? ListWidget(
+                      controller.librarySongsList,
+                      "library Songs",
+                      true,
+                      isPlaylistOrAlbum: true,
+                      playlist: Playlist(
+                          title: "Library Songs",
+                          playlistId: "SongsDownloads",
+                          thumbnailUrl: "",
+                          isCloudPlaylist: false),
+                    )
+                  : ModificationList(
+                      mode: controller.additionalOperationMode.value,
+                      screenController: controller,
+                    );
+            } 
+            
+            // 2. If the list is empty, check if we are currently scanning
+            else {
+              // 🟢 SHOW SCANNING ANIMATION IF SCANNING IS ACTIVE 🟢
+              if (controller.isScanningLocal.isTrue) {
+                return Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 20),
+                        Text(
+                          "Scanning device for music...",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Looking for local audio files",
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              } 
+              
+              // 🟢 SHOW EMPTY STATE IF SCANNING IS FINISHED & NO SONGS FOUND 🟢
+              else {
+                return Expanded(
+                  child: Center(
+                    child: Text(
                       "noOfflineSong".tr,
                       style: Theme.of(context).textTheme.titleMedium,
-                    )),
-                  );
+                    ),
+                  ),
+                );
+              }
+            }
           })
         ],
       ),

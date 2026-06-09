@@ -57,7 +57,7 @@ class SettingsScreen extends StatelessWidget {
                             onTap: () {
                               launchUrl(
                                 Uri.parse(
-                                  'https://github.com/anandnet/Harmony-Music/releases/latest',
+                                  'https://github.com/ridder14/Harmony-Music-Revived/releases/latest',
                                 ),
                                 mode: LaunchMode.externalApplication,
                               );
@@ -654,10 +654,36 @@ class SettingsScreen extends StatelessWidget {
                       },
                     ),
                   ]),
-              CustomExpansionTile(
+                            CustomExpansionTile(
                 icon: Icons.info,
                 title: "appInfo".tr,
                 children: [
+                  // 🟢 NEW: MANUAL CHECK FOR UPDATES BUTTON 🟢
+                  ListTile(
+                    contentPadding: const EdgeInsets.only(left: 5, right: 10),
+                    leading: const Icon(Icons.system_update_alt, color: Colors.lightBlueAccent),
+                    title: Text(
+                      "Check for Updates",
+                      style: Theme.of(context).textTheme.titleMedium!.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      "Current version: ${settingsController.currentVersion}",
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    trailing: Obx(() => settingsController.isCheckingUpdate.isTrue
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.chevron_right)),
+                    onTap: () {
+                      settingsController.checkForAppUpdates(context);
+                    },
+                  ),
+                  const Divider(),
+                  
+                  // Existing GitHub Link Tile
                   ListTile(
                     contentPadding: const EdgeInsets.only(left: 5, right: 10),
                     title: Text("github".tr),
@@ -669,22 +695,26 @@ class SettingsScreen extends StatelessWidget {
                     onTap: () {
                       launchUrl(
                         Uri.parse(
-                          'https://github.com/anandnet/Harmony-Music',
+                          'https://github.com/riddler14/Harmony-Music-Revived',
                         ),
                         mode: LaunchMode.externalApplication,
                       );
                     },
                   ),
                   const Divider(),
+                  
+                  // Existing App Title & Version Footer
                   SizedBox(
                     child: Column(
                       children: [
+                        const SizedBox(height: 10),
                         Text(
                           "Harmony Music",
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         Text(settingsController.currentVersion,
-                            style: Theme.of(context).textTheme.titleMedium)
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),

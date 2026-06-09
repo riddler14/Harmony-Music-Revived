@@ -20,8 +20,9 @@ import '/models/media_Item_builder.dart';
 import '/models/playlist.dart';
 
 class LibrarySongsController extends GetxController {
-  late RxList<MediaItem> librarySongsList = RxList();
+   late RxList<MediaItem> librarySongsList = RxList();
   final isSongFetched = false.obs;
+  final isScanningLocal = false.obs; // 🟢 ADD THIS LINE
   List<MediaItem> tempListContainer = [];
   SortWidgetController? sortWidgetController;
   final additionalOperationMode = OperationMode.none.obs;
@@ -32,9 +33,8 @@ class LibrarySongsController extends GetxController {
     super.onInit();
   }
 
-  Future<void> init() async {
+    Future<void> init() async {
     // Make sure that song cached in system or not cleared by system
-    // if cleared then it will remove from database as well
     List<String> songsList = [];
     final cacheDir = (await getTemporaryDirectory()).path;
     if (Directory("$cacheDir/cachedSongs/").existsSync()) {
@@ -52,7 +52,6 @@ class LibrarySongsController extends GetxController {
           })
           .whereType<String>()
           .toList());
-      //printINFO("all files: $downloadedFiles \n $songsList");
     }
 
     final box = Hive.box("SongsCache");
@@ -62,12 +61,13 @@ class LibrarySongsController extends GetxController {
       }
     }
 
+    // 1. Load System Cache & Downloads INSTANTLY
     librarySongsList.value = box.values
         .map<MediaItem?>((item) => MediaItemBuilder.fromJson(item))
         .whereType<MediaItem>()
         .toList();
 
-        librarySongsList.addAll(Hive.box("SongDownloads")
+    librarySongsList.addAll(Hive.box("SongDownloads")
         .values
         .map<MediaItem?>((item) => MediaItemBuilder.fromJson(item))
         .whereType<MediaItem>()
@@ -75,29 +75,49 @@ class LibrarySongsController extends GetxController {
         
     isSongFetched.value = true;
 
-    // 1. Let the app clean up expired YouTube downloads FIRST
+    // Let the app clean up expired YouTube downloads FIRST
     startHouseKeeping();
 
-    // 🟢 2. INJECT LOCAL SONGS *AFTER* HOUSEKEEPING 🟢
-    // This ensures the cleanup script doesn't accidentally wipe our local files!
+    // 🟢 2. INSTANT LOAD FROM LOCAL SONGS CACHE 🟢
+    final localCacheBox = await Hive.openBox('LocalSongsCache');
+    if (localCacheBox.isNotEmpty) {
+      final cachedLocalSongs = localCacheBox.values
+          .map<MediaItem?>((item) => MediaItemBuilder.fromJson(item))
+          .whereType<MediaItem>()
+          .toList();
+      
+      // Add to UI immediately so user sees songs in 0.1s
+      librarySongsList.addAll(cachedLocalSongs);
+      printINFO("⚡ Loaded ${cachedLocalSongs.length} local songs from cache instantly.");
+    }
+
+    // 🟢 3. SILENT BACKGROUND SCAN & CACHE UPDATE 🟢
+    isScanningLocal.value = true;
     try {
       final musicService = Get.find<MusicServices>();
       
-      if (musicService.localSongs.isEmpty) {
-        final scannedSongs = await musicService.scanLocalMusic();
-        musicService.localSongs.assignAll(scannedSongs);
+      // Run the heavy scan in the background
+      final freshScannedSongs = await musicService.scanLocalMusic();
+      musicService.localSongs.assignAll(freshScannedSongs);
+      
+      // Update the hidden cache database for next startup
+      await localCacheBox.clear();
+      for (var song in freshScannedSongs) {
+        await localCacheBox.add(MediaItemBuilder.toJson(song));
       }
       
-      librarySongsList.addAll(musicService.localSongs);
-      printINFO("✅ Injected ${musicService.localSongs.length} local songs into Library UI.");
+      // Update the UI: Remove old cached local songs, add fresh ones
+      // This perfectly handles newly added OR deleted files!
+      librarySongsList.removeWhere((song) => song.extras?['isLocal'] == true);
+      librarySongsList.addAll(freshScannedSongs);
+      
+      printINFO("✅ Background scan complete. Updated UI with ${freshScannedSongs.length} local songs.");
     } catch (e) {
-      printINFO("⚠️ Couldn't load local songs into library: $e");
+      printERROR("⚠️ Background local scan failed: $e");
+    } finally {
+      isScanningLocal.value = false;
+      await localCacheBox.close();
     }
-
-    isSongFetched.value = true;
-
-    //Remove deleted songs and expired songUrl from database
-    
   }
 
   void onSort(SortType sortType, bool isAscending) {

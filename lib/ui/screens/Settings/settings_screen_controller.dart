@@ -7,7 +7,9 @@ import 'package:harmonymusic/services/permission_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../utils/update_check_flag_file.dart';
 import '/services/piped_service.dart';
 import '../Library/library_controller.dart';
@@ -66,7 +68,75 @@ class SettingsScreenController extends GetxController {
     newVersionCheck(currentVersion)
         .then((value) => isNewVersionAvailable.value = value);
   }
+  final isCheckingUpdate = false.obs;
 
+  Future<void> checkForAppUpdates(BuildContext context) async {
+    isCheckingUpdate.value = true;
+    try {
+      // 1. Get accurate current version from the OS (Better than the hardcoded "V1.12.2")
+      String currentVer = currentVersion.replaceFirst('V', '').replaceFirst('v', '');
+      try {
+        final packageInfo = await PackageInfo.fromPlatform();
+        currentVer = packageInfo.version; 
+      } catch (_) {}
+
+      // 2. Fetch latest release from GitHub API
+      final dio = Dio();
+      // Note: Using anandnet/HarmonyMusic based on your package name logs
+      final response = await dio.get("https://api.github.com/repos/riddler14/Harmony-Music-Revived/releases/latest");
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        String latestTag = data['tag_name'].toString().replaceFirst('v', '').replaceFirst('V', '');
+        String releaseUrl = data['html_url'].toString();
+        String releaseName = data['name']?.toString() ?? "New Update";
+        
+        // 3. Compare versions
+        if (latestTag != currentVer) {
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text("Update Available! 🎉"),
+                content: Text(
+                  "A new version ($latestTag) is available.\n\n"
+                  "Current: $currentVer\n\n"
+                  "$releaseName\n\n"
+                  "(Your songs, playlists, and settings are 100% safe and will be preserved during the update)."
+                ),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Later")),
+                  FilledButton(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      // Opens the GitHub page. Obtainium will automatically catch this and update the app silently!
+                      await launchUrl(Uri.parse(releaseUrl), mode: LaunchMode.externalApplication);
+                    },
+                    child: const Text("Update Now"),
+                  ),
+                ],
+              ),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              snackbar(context, "You are on the latest version! ($currentVer)", size: SanckBarSize.MEDIUM)
+            );
+          }
+        }
+      }
+    } catch (e) {
+      printERROR("⚠️ [UPDATE] Failed to check for updates: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          snackbar(context, "Network error. Couldn't check for updates.", size: SanckBarSize.MEDIUM)
+        );
+      }
+    } finally {
+      isCheckingUpdate.value = false;
+    }
+  }
   Future<String> _createInAppSongDownDir() async {
     _supportDir = (await getApplicationSupportDirectory()).path;
     final directory = Directory("$_supportDir/Music/");

@@ -39,7 +39,7 @@ class StandardPlayer extends StatelessWidget {
         /// Album art image in background covering the whole screen
         BackgroudImage(
           key: Key("${playerController.currentSong.value?.id}_background"),
-          cacheHeight: 200,
+          
         ),
 
         /// Stack child

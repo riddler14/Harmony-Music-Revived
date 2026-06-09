@@ -27,7 +27,8 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
-dependencies:
+dependencies:          # To download the APK file # To find the cache directory
+  open_filex: ^4.3.4    # To trigger the Android Package Installer # To check current version
   animations: ^2.0.11
   app_links: ^3.5.1
   archive: ^3.1.6
