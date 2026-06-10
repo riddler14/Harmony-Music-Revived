@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 🟢 ADD THIS IMPORT
+import 'package:get/get.dart';
 import '../Search/components/desktop_search_bar.dart';
 import '/ui/screens/Search/search_screen_controller.dart';
 import '/ui/widgets/animated_screen_transition.dart';
@@ -28,8 +30,31 @@ class HomeScreen extends StatelessWidget {
     final SettingsScreenController settingsScreenController =
         Get.find<SettingsScreenController>();
 
-    return Scaffold(
+    return PopScope(
+      // 🟢 Prevent the OS from instantly killing the app
+      canPop: false, 
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+
+        // 🟢 1. IF THE FULLSCREEN PLAYER IS OPEN, CLOSE IT 🟢
+        if (playerController.playerPanelController.isPanelOpen) {
+          playerController.playerPanelController.close();
+          return; // Stop here! Do not exit the app.
+        }
+
+        // 🟢 2. IF THE QUEUE DRAWER IS OPEN, CLOSE IT 🟢
+        if (playerController.homeScaffoldkey.currentState?.isEndDrawerOpen ?? false) {
+          Navigator.of(context).pop(); 
+          return;
+        }
+
+        // 🟢 3. OTHERWISE, MINIMIZE THE APP (Music keeps playing!) 🟢
+        // This acts like pressing the phone's "Home" button. 
+        SystemNavigator.pop(); 
+      },
+      child: Scaffold(
         floatingActionButton: Obx(
+          // ... leave everything inside the Scaffold EXACTLY as it is ...
           () => ((homeScreenController.tabIndex.value == 0 &&
                           !GetPlatform.isDesktop) ||
                       homeScreenController.tabIndex.value == 2) &&
@@ -78,7 +103,8 @@ class HomeScreen extends StatelessWidget {
           () => Row(
             children: <Widget>[
               // create a navigation rail
-              settingsScreenController.isBottomNavBarEnabled.isFalse
+                           // create a navigation rail (🟢 Only render on Desktop!)
+              (settingsScreenController.isBottomNavBarEnabled.isFalse && GetPlatform.isDesktop)
                   ? const SideNavBar()
                   : const SizedBox(
                       width: 0,
@@ -98,7 +124,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-        ));
+        )));
   }
 }
 

@@ -166,19 +166,7 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (!isDesktop)
-                    ListTile(
-                        contentPadding:
-                            const EdgeInsets.only(left: 5, right: 10),
-                        title: Text("enableBottomNav".tr),
-                        subtitle: Text("enableBottomNavDes".tr,
-                            style: Theme.of(context).textTheme.bodyMedium),
-                        trailing: Obx(
-                          () => CustSwitch(
-                              value: settingsController
-                                  .isBottomNavBarEnabled.isTrue,
-                              onChanged: settingsController.enableBottomNavBar),
-                        )),
+                  
                   ListTile(
                       contentPadding: const EdgeInsets.only(left: 5, right: 10),
                       title: Text("disableTransitionAnimation".tr),

@@ -169,8 +169,8 @@ class SettingsScreenController extends GetxController {
         : appLang == "zh_Hans"
             ? "zh-CN"
             : appLang;
-    isBottomNavBarEnabled.value =
-        isDesktop ? false : (setBox.get("isBottomNavBarEnabled") ?? false);
+       isBottomNavBarEnabled.value =
+        isDesktop ? false : (setBox.get("isBottomNavBarEnabled") ?? true); // 🟢 Force Bottom Nav on mobile
     noOfHomeScreenContent.value = setBox.get("noOfHomeScreenContent") ?? 3;
     isTransitionAnimationDisabled.value =
         setBox.get("isTransitionAnimationDisabled") ?? false;
