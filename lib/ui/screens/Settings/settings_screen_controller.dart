@@ -70,61 +70,79 @@ class SettingsScreenController extends GetxController {
   }
   final isCheckingUpdate = false.obs;
 
-  Future<void> checkForAppUpdates(BuildContext context) async {
+    Future<void> checkForAppUpdates(BuildContext context) async {
     isCheckingUpdate.value = true;
     try {
-      // 1. Get accurate current version from the OS (Better than the hardcoded "V1.12.2")
-      String currentVer = currentVersion.replaceFirst('V', '').replaceFirst('v', '');
+      String currentVer = currentVersion;
       try {
         final packageInfo = await PackageInfo.fromPlatform();
         currentVer = packageInfo.version; 
       } catch (_) {}
 
-      // 2. Fetch latest release from GitHub API
       final dio = Dio();
-      // Note: Using anandnet/HarmonyMusic based on your package name logs
       final response = await dio.get("https://api.github.com/repos/riddler14/Harmony-Music-Revived/releases/latest");
       
-            if (response.statusCode == 200) {
+      if (response.statusCode == 200) {
         final data = response.data;
-        String latestTag = data['tag_name'].toString().replaceFirst('v', '').replaceFirst('V', '');
+        String rawTag = data['tag_name'].toString();
         String releaseUrl = data['html_url'].toString();
         String releaseName = data['name']?.toString() ?? "New Update";
         
-        // 🟢 CROSS-PLATFORM SAFETY CHECK 🟢
+        // 🟢 CLEAN STRINGS: Keep ONLY numbers and dots 🟢
+        String cleanCurrent = currentVer.replaceAll(RegExp(r'[^0-9.]'), '');
+        String cleanLatest = rawTag.replaceAll(RegExp(r'[^0-9.]'), '');
+        
+        printINFO("🔄 [UPDATE] Raw GitHub Tag: '$rawTag' -> Cleaned: '$cleanLatest'");
+        printINFO("🔄 [UPDATE] Local Version: '$currentVer' -> Cleaned: '$cleanCurrent'");
+
+        // 🟢 SAFETY CHECK 1: Is it a valid main release? 🟢
+        // Matches: v1, v2, 1, 12, v1.12.2, 1.0.0
+        // Ignores: win-search-fix-1, beta, test-build
+        final isValidVersion = RegExp(r'^v?\d+(\.\d+)*$').hasMatch(rawTag);
+        if (!isValidVersion) {
+          printINFO("⚠️ [UPDATE] Latest tag ('$rawTag') is a custom hotfix. Ignoring.");
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              snackbar(context, "You are on the latest version! ($cleanCurrent)", size: SanckBarSize.MEDIUM)
+            );
+          }
+          isCheckingUpdate.value = false;
+          return;
+        }
+
+        // 🟢 SAFETY CHECK 2: Cross-Platform APK Check 🟢
         final assets = data['assets'] as List;
         final hasApk = assets.any((asset) => asset['name'].toString().toLowerCase().contains('.apk'));
         
-        // If we are on Android, but the latest release ONLY has Windows/Linux files, ignore it!
         if (GetPlatform.isAndroid && !hasApk) {
-          printINFO("⚠️ [UPDATE] Latest release is for Desktop only. Skipping Android prompt.");
+          printINFO("⚠️ [UPDATE] Latest release is for Desktop only. Skipping.");
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              snackbar(context, "You are on the latest Android version! ($currentVer)", size: SanckBarSize.MEDIUM)
+              snackbar(context, "You are on the latest Android version! ($cleanCurrent)", size: SanckBarSize.MEDIUM)
             );
           }
+          isCheckingUpdate.value = false;
           return; 
         }
         
-        // 3. Compare versions
-        if (latestTag != currentVer) {
+        // 3. Compare using MATH (Not just strings!)
+        if (isNewerVersion(cleanLatest, cleanCurrent)) {
           if (context.mounted) {
             showDialog(
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text("Update Available! 🎉"),
                 content: Text(
-                  "A new version ($latestTag) is available.\n\n"
-                  "Current: $currentVer\n\n"
+                  "A new version ($cleanLatest) is available.\n\n"
+                  "Current: $cleanCurrent\n\n"
                   "$releaseName\n\n"
-                  "(Your songs, playlists, and settings are 100% safe and will be preserved during the update)."
+                  "(Your songs, playlists, and settings are 100% safe)."
                 ),
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Later")),
                   FilledButton(
                     onPressed: () async {
                       Navigator.pop(ctx);
-                      // Opens the GitHub page. Obtainium will automatically catch this and update the app silently!
                       await launchUrl(Uri.parse(releaseUrl), mode: LaunchMode.externalApplication);
                     },
                     child: const Text("Update Now"),
@@ -136,7 +154,7 @@ class SettingsScreenController extends GetxController {
         } else {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              snackbar(context, "You are on the latest version! ($currentVer)", size: SanckBarSize.MEDIUM)
+              snackbar(context, "You are on the latest version! ($cleanCurrent)", size: SanckBarSize.MEDIUM)
             );
           }
         }
@@ -485,4 +503,20 @@ class SettingsScreenController extends GetxController {
       return (await getApplicationDocumentsDirectory()).path;
     }
   }
+  // 🟢 MATHEMATICAL VERSION COMPARATOR 🟢
+  // Compares "2" vs "1", or "1.12.2" vs "1.12.1" using actual math!
+  bool isNewerVersion(String latestStr, String currentStr) {
+    List<int> latest = latestStr.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> current = currentStr.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    
+    int len = latest.length > current.length ? latest.length : current.length;
+    for (int i = 0; i < len; i++) {
+      int l = i < latest.length ? latest[i] : 0;
+      int c = i < current.length ? current[i] : 0;
+      if (l > c) return true;  // Latest is strictly greater
+      if (l < c) return false; // Current is newer (e.g., testing a beta build)
+    }
+    return false; // They are exactly equal
+  }
+
 }
