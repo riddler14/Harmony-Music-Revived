@@ -46,6 +46,7 @@ dependencies:          # To download the APK file # To find the cache directory
   flutter_keyboard_visibility: ^6.0.0
   flutter_lyric: ^2.0.4+6
   flutter_slidable: ^3.1.2
+  cupertino_icons: ^1.0.8 
   get: ^4.7.1
   google_fonts: ^6.3.0
   on_audio_query: ^2.9.0
