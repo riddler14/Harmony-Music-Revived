@@ -58,11 +58,11 @@ class ImageWidget extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         shape: artist != null ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: artist != null ? null : BorderRadius.circular(5),
+        // 🟢 UNIFIED BORDER RADIUS FOR ALL SQUARES 🟢
+        borderRadius: artist != null ? null : BorderRadius.circular(8), 
       ),
       child: isLocalArtFile
           ? Builder(builder: (context) {
-              // 🟢 SAFE FILE PARSING: Catches malformed file:// paths on HyperOS 🟢
               try {
                 return Image.file(
                   File(Uri.parse(imageUrl).toFilePath()),
@@ -98,7 +98,8 @@ class ImageWidget extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           shape: artist != null ? BoxShape.circle : BoxShape.rectangle,
-                          borderRadius: artist != null ? null : BorderRadius.circular(10),
+                          // 🟢 UNIFIED BORDER RADIUS FOR SHIMMER 🟢
+                          borderRadius: artist != null ? null : BorderRadius.circular(8),
                           color: Colors.white54,
                         ),
                       ))),
@@ -106,17 +107,24 @@ class ImageWidget extends StatelessWidget {
     );
   }
 
+  // 🟢 THE ULTIMATE SQUARE FALLBACK 🟢
   Widget _buildErrorWidget(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      height: size,
+      width: size,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondary,
+        // Uses a subtle tint of your app's theme color for the background
+        color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
         shape: artist != null ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: artist != null ? null : BorderRadius.circular(10),
+        borderRadius: artist != null ? null : BorderRadius.circular(8),
       ),
-      child: Image.asset(
-        "assets/icons/${song != null ? "song" : artist != null ? "artist" : "album"}.png",
-        errorBuilder: (_, __, ___) => const Icon(Icons.music_note, color: Colors.white54),
+      child: Center(
+        // 🟢 PURE FLUTTER ICONS (No more circular asset images!) 🟢
+        child: Icon(
+          artist != null ? Icons.person : Icons.music_note,
+          color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5) ?? Colors.white54,
+          size: size * 0.5, // Scales perfectly with the container size
+        ),
       ),
     );
   }

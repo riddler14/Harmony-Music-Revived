@@ -25,7 +25,12 @@ class SongDownloadButton extends StatelessWidget {
     return Obx(() {
       final song =
           calledFromPlayer ? playerController.currentSong.value : song_;
+          
       if (song == null && calledFromPlayer) return const SizedBox.shrink();
+
+      // 🟢 THE FIX: HIDE DOWNLOAD BUTTON FOR LOCAL SONGS 🟢
+      if (song?.extras?['isLocal'] == true) return const SizedBox.shrink();
+
       final isDownloadingDone = (downloader.songQueue.contains(song) &&
           downloader.currentSong == song &&
           downloader.songDownloadingProgress.value == 100);

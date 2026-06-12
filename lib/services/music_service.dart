@@ -298,17 +298,31 @@ class MusicServices extends getx.GetxService {
               } catch (_) {}
             }
 
+                     // 🟢 CALCULATE DURATION 🟢
+            final int durationMs = matchedSong?.duration ?? 0;
+            final int durationSec = durationMs ~/ 1000;
+
             foundSongs.add(MediaItem(
               id: "local_${entity.path.hashCode}", 
               title: title,
               artist: (matchedSong?.artist != null && matchedSong!.artist!.trim().isNotEmpty) ? matchedSong!.artist : "Local Download",
               album: matchedSong?.album ?? "Offline Library",
               artUri: artUri,
+              duration: Duration(milliseconds: durationMs), // 🟢 ADD DURATION OBJECT FOR PLAYER
               extras: {
                 'isLocal': true,
                 'localPath': entity.path, 
                 'audioQueryId': matchedSong?.id ?? entity.path.hashCode,
                 'lyrics': localLyrics,
+                'length': _formatTime(durationSec), // 🟢 ADD FORMATTED LENGTH STRING FOR UI (e.g. "3:45")
+                
+                // 🟢 MATCH THE ONLINE SONGS "BACKPACK" SO THE UI DOESN'T CRASH 🟢
+                'url': entity.path,
+                'album': {'name': matchedSong?.album ?? "Offline Library"},
+                'artists': [{'name': (matchedSong?.artist != null && matchedSong!.artist!.trim().isNotEmpty) ? matchedSong!.artist : "Local Download"}],
+                'date': '',
+                'trackDetails': '',
+                'year': '',
               },
             ));
           }
