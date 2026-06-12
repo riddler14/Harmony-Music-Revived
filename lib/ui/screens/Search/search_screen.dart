@@ -133,11 +133,35 @@ class SearchScreen extends StatelessWidget {
                                       ),
                                     )
                                   ]
-                                : list
-                                    .map((item) => SearchItem(
+                                                              : [
+                                    // 🟢 ADD CLEAR ALL HEADER HERE 🟢
+                                    if (isEmpty && searchScreenController.historyQuerylist.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              "Recent Searches",
+                                              style: Theme.of(context).textTheme.titleMedium,
+                                            ),
+                                            TextButton(
+                                              onPressed: () => searchScreenController.clearAllHistory(),
+                                              child: Text(
+                                                "Clear all",
+                                                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    // 🟢 END HEADER 🟢
+                                    
+                                    // Spread the existing list items below the header
+                                    ...list.map((item) => SearchItem(
                                         queryString: item,
-                                        isHistoryString: isEmpty))
-                                    .toList());
+                                        isHistoryString: isEmpty)).toList()
+                                  ]);
                       }),
                     )
                   ],

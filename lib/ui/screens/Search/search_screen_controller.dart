@@ -75,7 +75,11 @@ class SearchScreenController extends GetxController with ProcessLink {
     await queryBox.deleteAt(index);
     historyQuerylist.remove(txt);
   }
-
+    // 🟢 ADD THIS METHOD 🟢
+  Future<void> clearAllHistory() async {
+    await queryBox.clear();
+    historyQuerylist.clear();
+  }
   @override
   void dispose() {
     focusNode.dispose();

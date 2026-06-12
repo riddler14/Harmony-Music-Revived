@@ -57,7 +57,7 @@ class SettingsScreen extends StatelessWidget {
                             onTap: () {
                               launchUrl(
                                 Uri.parse(
-                                  'https://github.com/ridder14/Harmony-Music-Revived/releases/latest',
+                                  'https://github.com/riddler14/Harmony-Music-Revived/releases/latest',
                                 ),
                                 mode: LaunchMode.externalApplication,
                               );
