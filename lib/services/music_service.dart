@@ -75,14 +75,18 @@ class MusicServices extends getx.GetxService {
 
   // -----------------------------
 
-  Future<void> init() async {
+   Future<void> init() async {
     // 🟢 ANDROID_MUSIC doesn't need dynamic dates or signature timestamps! 🟢
-    final appPrefsBox = Hive.box('AppPrefs');
-    hlCode = appPrefsBox.get('contentLanguage') ?? "en";
     
-    // Apply the language code to our new Android context
-    _context['context']['client']['hl'] = hlCode;
+    final appPrefsBox = Hive.box('AppPrefs');
+    
+    // 🟢 This line automatically updates the 'hl' context via your setter! 🟢
+    hlCode = appPrefsBox.get('contentLanguage') ?? "en"; 
+    
+    // Set the country code (gl)
     _context['context']['client']['gl'] = appPrefsBox.get('contentCountry') ?? "US";
+
+    // --- Visitor ID Logic (Keep exactly as it was) ---
     if (appPrefsBox.containsKey('visitorId')) {
       final visitorData = appPrefsBox.get("visitorId");
       if (visitorData != null && !isExpired(epoch: visitorData['exp'])) {
