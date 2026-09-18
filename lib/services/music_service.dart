@@ -38,11 +38,14 @@ class MusicServices extends getx.GetxService {
     'cookie': 'CONSENT=YES+1',
   };
 
-  final Map<String, dynamic> _context = {
+    final Map<String, dynamic> _context = {
     'context': {
       'client': {
-        "clientName": "WEB_REMIX",
-        "clientVersion": "1.20230213.01.00",
+        "clientName": "ANDROID_MUSIC", // 🟢 SWITCHED TO ANDROID
+        "clientVersion": "6.33.52",    // 🟢 STABLE ANDROID VERSION
+        "androidSdkVersion": 30,
+        "hl": "en",
+        "gl": "US",
       },
       'user': {}
     }
@@ -73,16 +76,13 @@ class MusicServices extends getx.GetxService {
   // -----------------------------
 
   Future<void> init() async {
-    final date = DateTime.now();
-    _context['context']['client']['clientVersion'] =
-        "1.${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}.01.00";
-    final signatureTimestamp = getDatestamp() - 1;
-    _context['playbackContext'] = {
-      'contentPlaybackContext': {'signatureTimestamp': signatureTimestamp},
-    };
-
+    // 🟢 ANDROID_MUSIC doesn't need dynamic dates or signature timestamps! 🟢
     final appPrefsBox = Hive.box('AppPrefs');
     hlCode = appPrefsBox.get('contentLanguage') ?? "en";
+    
+    // Apply the language code to our new Android context
+    _context['context']['client']['hl'] = hlCode;
+    _context['context']['client']['gl'] = appPrefsBox.get('contentCountry') ?? "US";
     if (appPrefsBox.containsKey('visitorId')) {
       final visitorData = appPrefsBox.get("visitorId");
       if (visitorData != null && !isExpired(epoch: visitorData['exp'])) {
