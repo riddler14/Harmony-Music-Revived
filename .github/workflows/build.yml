@@ -42,9 +42,14 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
         
-      # 🟢 THE FIX: Removed '=false' from the flag 🟢
+      - name: Fix on_audio_query_android Manifest for CI
+        run: |
+          # This removes the deprecated 'package' attribute that newer AGP versions reject
+          sed -i 's/ *package="com\.lucasjosino\.on_audio_query"//g' ~/.pub-cache/hosted/pub.dev/on_audio_query_android-1.1.0/android/src/main/AndroidManifest.xml
+          echo "✅ Manifest fixed for CI runner!"
+      
       - name: Build Signed APK
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
         
       - name: Create Release and Upload APK
         uses: ncipollo/release-action@v1
