@@ -1,5 +1,3 @@
-import 'package:get/get.dart';
-
 class Thumbnail {
   Thumbnail(this._url);
   final String _url;

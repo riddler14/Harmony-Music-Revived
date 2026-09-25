@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
@@ -19,13 +20,11 @@ import '/utils/helper.dart';
 import '/models/media_Item_builder.dart';
 import '../ui/screens/Library/library_controller.dart';
 import 'music_service.dart';
-//import '../models/thumbnail.dart' as th;
 
 class Downloader extends GetxService {
   final _dio = Dio();
   MediaItem? currentSong;
-  RxMap<String, List<MediaItem>> playlistQueue =
-      <String, List<MediaItem>>{}.obs;
+  RxMap<String, List<MediaItem>> playlistQueue = <String, List<MediaItem>>{}.obs;
   final currentPlaylistId = "".obs;
   final songDownloadingProgress = 0.obs;
   final playlistDownloadingProgress = 0.obs;
@@ -41,8 +40,7 @@ class Downloader extends GetxService {
       return false;
     }
 
-    final dirPath =
-        Get.find<SettingsScreenController>().downloadLocationPath.string;
+    final dirPath = Get.find<SettingsScreenController>().downloadLocationPath.string;
     final directory = Directory(dirPath);
     if (!await directory.exists()) {
       await directory.create(recursive: true);
@@ -50,11 +48,9 @@ class Downloader extends GetxService {
     return true;
   }
 
-  Future<void> downloadPlaylist(
-      String playlistId, List<MediaItem> songList) async {
+  Future<void> downloadPlaylist(String playlistId, List<MediaItem> songList) async {
     if (!(await checkPermissionNDir())) return;
 
-    // for toggle between downloading request & cancelling
     if (playlistQueue.containsKey(playlistId)) {
       songQueue.removeWhere((element) => songList.contains(element));
       playlistQueue.remove(playlistId);
@@ -82,31 +78,18 @@ class Downloader extends GetxService {
   }
 
   Future<void> triggerDownloadingJob() async {
-    //check if playlist download in queue => download playlistsongs else download from general songs queue
     if (playlistQueue.isNotEmpty) {
       isJobRunning.value = true;
       for (String playlistId in playlistQueue.keys.toList()) {
-        //checked in case download cancel request
         if (playlistQueue.containsKey(playlistId)) {
           currentPlaylistId.value = playlistId;
-          await downloadSongList((playlistQueue[playlistId]!).toList(),
-              isPlaylist: true);
-          if (Get.isRegistered<PlaylistScreenController>(
-                  tag: Key(playlistId).hashCode.toString()) &&
+          await downloadSongList((playlistQueue[playlistId]!).toList(), isPlaylist: true);
+          if (Get.isRegistered<PlaylistScreenController>(tag: Key(playlistId).hashCode.toString()) &&
               playlistQueue.containsKey(playlistId)) {
-            Get.find<PlaylistScreenController>(
-                    tag: Key(playlistId).hashCode.toString())
-                .isDownloaded
-                .value = true;
-          } 
-          // in case of album
-          else if (Get.isRegistered<AlbumScreenController>(
-                  tag: Key(playlistId).hashCode.toString()) &&
+            Get.find<PlaylistScreenController>(tag: Key(playlistId).hashCode.toString()).isDownloaded.value = true;
+          } else if (Get.isRegistered<AlbumScreenController>(tag: Key(playlistId).hashCode.toString()) &&
               playlistQueue.containsKey(playlistId)) {
-            Get.find<AlbumScreenController>(
-                    tag: Key(playlistId).hashCode.toString())
-                .isDownloaded
-                .value = true;
+            Get.find<AlbumScreenController>(tag: Key(playlistId).hashCode.toString()).isDownloaded.value = true;
           }
           playlistQueue.remove(playlistId);
         }
@@ -126,10 +109,8 @@ class Downloader extends GetxService {
     }
   }
 
-  Future<void> downloadSongList(List<MediaItem> jobSongList,
-      {bool isPlaylist = false}) async {
+  Future<void> downloadSongList(List<MediaItem> jobSongList, {bool isPlaylist = false}) async {
     for (MediaItem song in jobSongList) {
-      // intrrupt downloading task in case of playlist download cancel request
       if (isPlaylist && !playlistQueue.containsKey(currentPlaylistId.value)) {
         currentPlaylistId.value = "";
         playlistDownloadingProgress.value = 0;
@@ -142,7 +123,6 @@ class Downloader extends GetxService {
         await writeFileStream(song);
       }
       songQueue.remove(song);
-      //for playlist downloading counter update
       if (isPlaylist) {
         playlistDownloadingProgress.value = jobSongList.indexOf(song) + 1;
       }
@@ -156,23 +136,11 @@ class Downloader extends GetxService {
     final downloadingFormat = settingsScreenController.downloadingFormat.string;
 
     final playerResponse = await StreamProvider.fetch(song.id);
-    // if (!playerResponse.playable) {
-    //   printINFO("Network error! Check your network connection.");
-    //   ScaffoldMessenger.of(Get.context!).showSnackBar(snackbar(
-    //       Get.context!, playerResponse.statusMSG,
-    //       size: SanckBarSize.BIG,
-    //       duration: const Duration(seconds: 2),
-    //       top: !GetPlatform.isDesktop));
-    //   complete.complete();
-    //   return complete.future;
-    // }
 
     if (!playerResponse.playable) {
       ScaffoldMessenger.of(Get.context!).showSnackBar(snackbar(
           Get.context!,
-          playerResponse.statusMSG == "networkError"
-              ? playerResponse.statusMSG.tr
-              : playerResponse.statusMSG,
+          playerResponse.statusMSG == "networkError" ? playerResponse.statusMSG.tr : playerResponse.statusMSG,
           size: SanckBarSize.BIG,
           duration: const Duration(seconds: 2),
           top: !GetPlatform.isDesktop));
@@ -186,28 +154,33 @@ class Downloader extends GetxService {
         : playerResponse.highestBitrateMp4aAudio!;
 
     final dirPath = settingsScreenController.downloadLocationPath.string;
-    final actualDownformat =
-        requiredAudioStream.audioCodec.name.contains("mp") ? "m4a" : "opus";
-    final RegExp invalidChar =
-        RegExp(r'Container.|\/|\\|\"|\<|\>|\*|\?|\:|\!|\[|\]|\¡|\||\%');
-    final songTitle = "${song.title.trim()} (${song.artist?.trim()})"
-        .replaceAll(invalidChar, "");
+    final actualDownformat = requiredAudioStream.audioCodec.name.contains("mp") ? "m4a" : "opus";
+    final RegExp invalidChar = RegExp(r'Container.|\/|\\|\"|\<|\>|\*|\?|\:|\!|\[|\]|\¡|\||\%');
+    final songTitle = "${song.title.trim()} (${song.artist?.trim()})".replaceAll(invalidChar, "");
     String filePath = "$dirPath/$songTitle.$actualDownformat";
     printINFO("Downloading filePath: $filePath");
     final totalBytes = requiredAudioStream.size;
 
-       _dio.download(
-        requiredAudioStream.url,
-        options: Options(headers: {"Range": 'bytes=0-$totalBytes'}),
-        filePath, onReceiveProgress: (count, total) {
-      if (total <= 0) return;
-      songDownloadingProgress.value = ((count / total) * 100).toInt();
-    }).then(
+    // 🟢 THE FIX: Add the User-Agent headers to bypass the 403 Forbidden on download! 🟢
+    _dio.download(
+      requiredAudioStream.url,
+      filePath,
+      options: Options(
+        headers: {
+          "Range": 'bytes=0-$totalBytes',
+          "User-Agent": requiredAudioStream.userAgent, // 🟢 THE SECRET PASSWORD
+          "Referer": "https://www.youtube.com/",
+          "Origin": "https://www.youtube.com",
+          "Accept": "*/*",
+        },
+      ),
+      onReceiveProgress: (count, total) {
+        if (total <= 0) return;
+        songDownloadingProgress.value = ((count / total) * 100).toInt();
+      },
+    ).then(
       (value) async {
-        // 🟢 WRAP ENTIRE POST-DOWNLOAD IN TRY-CATCH 🟢
         try {
-          printINFO(value.data);
-
           String? year;
           try {
             if (song.extras?['year'] != null) {
@@ -220,35 +193,26 @@ class Downloader extends GetxService {
             }
           } catch (_) {}
 
-          // Save Thumbnail
           try {
-            final thumbnailPath =
-                "${settingsScreenController.supportDirPath}/thumbnails/${song.id}.png";
+            final thumbnailPath = "${settingsScreenController.supportDirPath}/thumbnails/${song.id}.png";
             if (song.artUri != null) {
               await _dio.downloadUri(song.artUri!, thumbnailPath);
             }
-          } catch (e) {}
+          } catch (e) {
+            // Thumbnail download failures should not interrupt the song download.
+          }
 
-          // 🟢 SAFE EXTRAS ASSIGNMENT 🟢
-                    // 🟢 REMOVE: song.extras ??= {}; (MediaItem is immutable!) 🟢
-          
-          // 1. Safely update the in-memory extras ONLY if the map already exists
           if (song.extras != null) {
             song.extras!['url'] = filePath;
           }
 
-          // 2. Convert to JSON
           final songJson = MediaItemBuilder.toJson(song);
-          
-          // 🟢 INJECT THE URL DIRECTLY INTO THE JSON MAP FOR HIVE 🟢
-          // This guarantees the downloaded file path is saved to the database!
           songJson['url'] = filePath; 
 
           final streamInfoJson = requiredAudioStream.toJson();
           streamInfoJson['url'] = filePath;
           songJson["streamInfo"] = [true, streamInfoJson];
 
-          // 3. Save to Hive
           try {
             await Hive.box("SongDownloads").put(song.id, songJson);
             Get.find<LibrarySongsController>().librarySongsList.add(song);
@@ -258,40 +222,25 @@ class Downloader extends GetxService {
           
           printINFO("Downloaded successfully");
 
-          // 🟢 SAFE TRACK DETAILS PARSING 🟢
-                 // 🟢 TRULY SAFE TRACK DETAILS PARSING 🟢
           final trackDetails = (song.extras?['trackDetails'])?.toString().split("/");
-          
-          final int? trackNumber = (trackDetails != null && trackDetails.isNotEmpty) 
-              ? int.tryParse(trackDetails[0]) 
-              : null;
-              
-          final int? totalTracks = (trackDetails != null && trackDetails.length > 1) 
-              ? int.tryParse(trackDetails[1]) 
-              : null;
+          final int? trackNumber = (trackDetails != null && trackDetails.isNotEmpty) ? int.tryParse(trackDetails[0]) : null;
+          final int? totalTracks = (trackDetails != null && trackDetails.length > 1) ? int.tryParse(trackDetails[1]) : null;
 
-                    // 🟢 BULLETPROOF AUDIOTAGS BLOCK (USING DIO & DYNAMIC MIME) 🟢
           try {
             final imageUrl = song.artUri?.toString() ?? "";
             
             if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
-              // 1. Reliably download image bytes using Dio
               Uint8List? imageBytes;
               try {
-                final imgResponse = await _dio.get(
-                  imageUrl, 
-                  options: Options(responseType: ResponseType.bytes),
-                );
+                final imgResponse = await _dio.get(imageUrl, options: Options(responseType: ResponseType.bytes));
                 imageBytes = imgResponse.data;
               } catch (imgError) {
                 printERROR("⚠️ [DOWNLOADER] Failed to download cover art bytes: $imgError");
               }
 
-              // 2. Dynamic MIME type detection (Defaults to JPEG, checks for PNG)
               final isPng = imageUrl.toLowerCase().endsWith('.png');
               final mimeType = isPng ? MimeType.png : MimeType.jpeg;
 
-              // 3. Build and write the tag
               if (imageBytes != null) {
                 Tag tag = Tag(
                     title: song.title,
@@ -302,17 +251,11 @@ class Downloader extends GetxService {
                     trackTotal: totalTracks,
                     albumArtist: song.artist,
                     genre: song.genre,
-                    pictures: [
-                      Picture(
-                          bytes: imageBytes,
-                          mimeType: mimeType,
-                          pictureType: PictureType.coverFront)
-                    ]);
+                    pictures: [Picture(bytes: imageBytes, mimeType: mimeType, pictureType: PictureType.coverFront)]);
 
                 await AudioTags.write(filePath, tag);
                 printINFO("✅ [DOWNLOADER] AudioTags written successfully!");
-                            } else {
-                // If image download failed, write tags WITHOUT the picture
+              } else {
                 Tag tagNoPic = Tag(
                     title: song.title,
                     trackArtist: song.artist,
@@ -322,9 +265,8 @@ class Downloader extends GetxService {
                     trackTotal: totalTracks,
                     albumArtist: song.artist,
                     genre: song.genre,
-                    pictures: const []); // 🟢 ADDED EMPTY LIST 🟢
+                    pictures: const []);
                 
-              
                 await AudioTags.write(filePath, tagNoPic);
                 printINFO("✅ [DOWNLOADER] AudioTags written (without cover art)!");
               }
@@ -333,7 +275,6 @@ class Downloader extends GetxService {
             printERROR("⚠️ [DOWNLOADER] AudioTags final fallback failed: $e");
           }
           
-          // 🟢 SHOW SUCCESS SNACKBAR HERE 🟢
           if (Get.context != null) {
             ScaffoldMessenger.of(Get.context!).showSnackBar(snackbar(
                 Get.context!, "Song Downloaded".tr,
@@ -343,7 +284,6 @@ class Downloader extends GetxService {
           }
 
         } catch (e, stackTrace) {
-          // 🟢 CATCHES ANY RANDOM POST-DOWNLOAD CRASH 🟢
           printERROR("⚠️ [DOWNLOADER] Post-download processing failed: $e");
           printERROR(stackTrace);
           if (Get.context != null) {
@@ -359,7 +299,6 @@ class Downloader extends GetxService {
       },
     ).onError(
       (error, stackTrace) {
-        // 🟢 THIS NOW ONLY TRIGGERS IF THE ACTUAL NETWORK DOWNLOAD FAILS 🟢
         if (Get.context != null) {
           ScaffoldMessenger.of(Get.context!).showSnackBar(snackbar(
               Get.context!, "downloadError3".tr,
@@ -367,8 +306,7 @@ class Downloader extends GetxService {
               duration: const Duration(seconds: 2),
               top: !GetPlatform.isDesktop));
         }
-        printINFO(
-            "Downloading failed due to network/stream error! Please try again");
+        printINFO("Downloading failed due to network/stream error! Please try again");
         complete.complete();
       },
     );

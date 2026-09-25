@@ -92,9 +92,8 @@ class PlaylistScreen extends StatelessWidget {
                               ],
                             ),
                                                         child: Builder(builder: (context) {
-                              final String? thumbUrl = playlistController.playlist.value.thumbnailUrl;
-                              final bool isValidWebUrl = thumbUrl != null && 
-                                                         thumbUrl.isNotEmpty && 
+                              final String thumbUrl = playlistController.playlist.value.thumbnailUrl;
+                              final bool isValidWebUrl = thumbUrl.isNotEmpty && 
                                                          (thumbUrl.startsWith('http://') || thumbUrl.startsWith('https://'));
                               
                               if (!isValidWebUrl) {
@@ -106,7 +105,7 @@ class PlaylistScreen extends StatelessWidget {
                                  child: Icon(
   Icons.music_note,
   size: 64,
-  color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+  color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
 ), // ✅ FIXED
                                 );
                               }
@@ -121,7 +120,7 @@ class PlaylistScreen extends StatelessWidget {
                                   child: Icon(
   Icons.music_note,
   size: 64,
-  color: Theme.of(context).iconTheme.color?.withOpacity(0.5),
+  color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.5),
 ), // ✅ FIXED
                                 ),
                               );

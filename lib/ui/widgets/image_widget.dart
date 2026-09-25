@@ -33,11 +33,11 @@ class ImageWidget extends StatelessWidget {
     if (song != null) {
       imageUrl = song!.artUri?.toString() ?? "";
     } else if (playlist != null) {
-      imageUrl = playlist!.thumbnailUrl ?? "";
+      imageUrl = playlist!.thumbnailUrl;
     } else if (album != null) {
-      imageUrl = album!.thumbnailUrl ?? "";
+      imageUrl = album!.thumbnailUrl;
     } else if (artist != null) {
-      imageUrl = artist!.thumbnailUrl ?? "";
+      imageUrl = artist!.thumbnailUrl;
     }
 
     // 🟢 BULLETPROOF CHECK: Prevent "null" strings or empty paths from crashing CachedNetworkImage 🟢
@@ -114,7 +114,7 @@ class ImageWidget extends StatelessWidget {
       width: size,
       decoration: BoxDecoration(
         // Uses a subtle tint of your app's theme color for the background
-        color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
         shape: artist != null ? BoxShape.circle : BoxShape.rectangle,
         borderRadius: artist != null ? null : BorderRadius.circular(8),
       ),
@@ -122,7 +122,7 @@ class ImageWidget extends StatelessWidget {
         // 🟢 PURE FLUTTER ICONS (No more circular asset images!) 🟢
         child: Icon(
           artist != null ? Icons.person : Icons.music_note,
-          color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5) ?? Colors.white54,
+          color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.5) ?? Colors.white54,
           size: size * 0.5, // Scales perfectly with the container size
         ),
       ),

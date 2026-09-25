@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:palette_generator/palette_generator.dart';
 import '/utils/helper.dart';
@@ -82,7 +81,7 @@ class ThemeController extends GetxController {
         textColor: textColor.value,
         titleColorSwatch: _createMaterialColor(textColor.value));
     currentSongId = songId;
-    Hive.box('appPrefs').put("themePrimaryColor", (primaryColor.value!).value);
+    Hive.box('appPrefs').put("themePrimaryColor", (primaryColor.value!).toARGB32());
     setWindowsTitleBarColor(themedata.value!.scaffoldBackgroundColor);
   }
 
@@ -93,7 +92,7 @@ class ThemeController extends GetxController {
         SystemUiOverlayStyle(
             statusBarIconBrightness: Brightness.light,
             statusBarColor: Colors.transparent,
-            systemNavigationBarColor: Colors.white.withOpacity(0.002),
+            systemNavigationBarColor: Colors.white.withValues(alpha: 0.002),
             systemNavigationBarDividerColor: Colors.transparent,
             systemNavigationBarIconBrightness: Brightness.light,
             systemStatusBarContrastEnforced: false,
@@ -108,8 +107,6 @@ class ThemeController extends GetxController {
               brightness: Brightness.dark,
               backgroundColor: primarySwatch[700],
               primarySwatch: primarySwatch),
-          //accentColor: primarySwatch[200],
-          dialogBackgroundColor: primarySwatch[700],
           cardColor: primarySwatch[600],
           primaryColorLight: primarySwatch[400],
           primaryColorDark: primarySwatch[700],
@@ -138,7 +135,6 @@ class ThemeController extends GetxController {
                 letterSpacing: 0,
                 fontWeight: FontWeight.bold),
           ),
-          indicatorColor: Colors.white,
           progressIndicatorTheme: ProgressIndicatorThemeData(
               linearTrackColor: (primarySwatch[300])!.computeLuminance() > 0.3
                   ? Colors.black54
@@ -163,17 +159,17 @@ class ThemeController extends GetxController {
           textSelectionTheme: TextSelectionThemeData(
               cursorColor: primarySwatch[200],
               selectionColor: primarySwatch[200],
-              selectionHandleColor: primarySwatch[200])
+              selectionHandleColor: primarySwatch[200]), dialogTheme: DialogThemeData(backgroundColor: primarySwatch[700]), tabBarTheme: TabBarThemeData(indicatorColor: Colors.white)
           //scaffoldBackgroundColor: primarySwatch[700]
           );
       return baseTheme.copyWith(
-          textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme));
+          textTheme: baseTheme.textTheme);
     } else if (themeType == ThemeType.dark) {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
             statusBarIconBrightness: Brightness.light,
             statusBarColor: Colors.transparent,
-            systemNavigationBarColor: Colors.white.withOpacity(0.002),
+            systemNavigationBarColor: Colors.white.withValues(alpha: 0.002),
             systemNavigationBarDividerColor: Colors.transparent,
             systemNavigationBarIconBrightness: Brightness.light,
             systemStatusBarContrastEnforced: false,
@@ -238,13 +234,13 @@ class ThemeController extends GetxController {
               focusedBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: Colors.white))));
       return baseTheme.copyWith(
-          textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme));
+          textTheme: baseTheme.textTheme);
     } else {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
             statusBarIconBrightness: Brightness.dark,
             statusBarColor: Colors.transparent,
-            systemNavigationBarColor: Colors.white.withOpacity(0.002),
+            systemNavigationBarColor: Colors.white.withValues(alpha: 0.002),
             systemNavigationBarDividerColor: Colors.transparent,
             systemNavigationBarIconBrightness: Brightness.dark,
             systemStatusBarContrastEnforced: false,
@@ -310,7 +306,7 @@ class ThemeController extends GetxController {
               focusedBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: Colors.black))));
       return baseTheme.copyWith(
-          textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme));
+          textTheme: baseTheme.textTheme);
     }
   }
 
@@ -331,7 +327,7 @@ class ThemeController extends GetxController {
         1,
       );
     }
-    return MaterialColor(color.value, swatch);
+    return MaterialColor(color.toARGB32(), swatch);
   }
 
   Future<void> setWindowsTitleBarColor(Color color) async {

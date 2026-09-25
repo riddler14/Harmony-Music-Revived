@@ -276,25 +276,28 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     queue.add(newQueue);
   }
 
-  AudioSource _createAudioSource(MediaItem mediaItem) {
+      AudioSource _createAudioSource(MediaItem mediaItem) {
     final url = mediaItem.extras!['url'] as String;
-    if (url.contains('/cache') ||
-        (Get.find<SettingsScreenController>().cacheSongs.isTrue &&
-            url.contains("http"))) {
-      printINFO("Playing Using LockCaching");
-      isPlayingUsingLockCachingSource = true;
-      return LockCachingAudioSource(
-        Uri.parse(url),
-        cacheFile: File("$_cacheDir/cachedSongs/${mediaItem.id}.mp3"),
-        tag: mediaItem,
-      );
-    }
+    
+    // 🟢 READ THE USER AGENT THAT MATCHES THE EXTRACTION CLIENT 🟢
+    final userAgent = mediaItem.extras!['userAgent'] as String? ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
-    printINFO("Playing Using AudioSource.uri");
+    final Map<String, String> ytHeaders = {
+      'User-Agent': userAgent, // 🟢 THIS PREVENTS THE 403 FORBIDDEN ERROR 🟢
+      'Referer': 'https://www.youtube.com/',
+      'Origin': 'https://www.youtube.com',
+      'Accept': '*/*',
+    };
+
+    printINFO("🔥 [EXO] Playing URL: $url");
+    printINFO("🔥 [EXO] Using User-Agent: $userAgent");
+    
+    // Force standard URI playback to ensure headers are applied correctly
     isPlayingUsingLockCachingSource = false;
     return AudioSource.uri(
       Uri.tryParse(url)!,
       tag: mediaItem,
+      headers: url.startsWith("http") ? ytHeaders : null, 
     );
   }
 

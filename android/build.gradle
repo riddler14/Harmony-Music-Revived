@@ -14,9 +14,14 @@ subprojects {
     afterEvaluate { project ->
         if (project.hasProperty('android')) {
             project.android {
+                // Fixed: Uses Gradle's native property mapping instead of manual XML parsing
                 if (namespace == null) {
-                    def manifest = new XmlParser().parse(file("${project.projectDir}/src/main/AndroidManifest.xml"))
-                    namespace = manifest.@package
+                    if (project.hasProperty('packageName') && project.packageName != null) {
+                        namespace = project.packageName
+                    } else {
+                        // Fallback namespace to prevent Gradle 8+ build failure
+                        namespace = "com.example.${project.name.replaceAll(/[^a-zA-Z0-9]/, '')}"
+                    }
                 }
                 
                 // 🟢 FORCE JAVA JVM TARGET TO 17 🟢

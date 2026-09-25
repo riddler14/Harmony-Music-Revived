@@ -226,20 +226,19 @@ class HomeScreenController extends GetxController {
       }
     } else {
       songId ??= Hive.box("AppPrefs").get("recentSongId");
-      if (songId != null) {
-        try {
-          final value = await _musicServices.getContentRelatedToSong(
-              songId, getContentHlCode());
-          middleContent.value = _setContentList(value);
-          if (value.isNotEmpty && (value[0]['title']).contains("like")) {
-            quickPicks_ =
-                QuickPicks(List<MediaItem>.from(value[0]["contents"]));
-            Hive.box("AppPrefs").put("recentSongId", songId);
-          }
-          // ignore: empty_catches
-        } catch (e) {}
-      }
-    }
+      if (songId == null) return;
+      try {
+        final value = await _musicServices.getContentRelatedToSong(
+            songId, getContentHlCode());
+        middleContent.value = _setContentList(value);
+        if (value.isNotEmpty && (value[0]['title']).contains("like")) {
+          quickPicks_ =
+              QuickPicks(List<MediaItem>.from(value[0]["contents"]));
+          Hive.box("AppPrefs").put("recentSongId", songId);
+        }
+        // ignore: empty_catches
+      } catch (e) {}
+        }
     if (quickPicks_ == null) return;
 
     quickPicks.value = quickPicks_;

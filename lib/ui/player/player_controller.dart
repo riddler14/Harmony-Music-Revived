@@ -656,8 +656,8 @@ class PlayerController extends GetxController
         await Hive.box("AppPrefs").put("volume", vol);
       }
     }
-    _audioHandler.customAction("setVolume", {"value": vol!});
-    volume.value = vol;
+    _audioHandler.customAction("setVolume", {"value": vol});
+    volume.value = vol!;
   }
 
   Future<void> _checkFav() async {

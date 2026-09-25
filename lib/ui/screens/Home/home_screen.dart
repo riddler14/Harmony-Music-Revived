@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 🟢 ADD THIS IMPORT
-import 'package:get/get.dart';
 import '../Search/components/desktop_search_bar.dart';
 import '/ui/screens/Search/search_screen_controller.dart';
 import '/ui/widgets/animated_screen_transition.dart';
@@ -33,7 +31,7 @@ class HomeScreen extends StatelessWidget {
     return PopScope(
       // 🟢 Prevent the OS from instantly killing the app
       canPop: false, 
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
         // 🟢 1. IF THE FULLSCREEN PLAYER IS OPEN, CLOSE IT 🟢

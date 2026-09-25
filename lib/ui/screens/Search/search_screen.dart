@@ -159,8 +159,8 @@ class SearchScreen extends StatelessWidget {
                                     
                                     // Spread the existing list items below the header
                                     ...list.map((item) => SearchItem(
-                                        queryString: item,
-                                        isHistoryString: isEmpty)).toList()
+                                      queryString: item,
+                                      isHistoryString: isEmpty))
                                   ]);
                       }),
                     )

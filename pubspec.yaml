@@ -48,7 +48,7 @@ dependencies:          # To download the APK file # To find the cache directory
   flutter_slidable: ^3.1.2
   cupertino_icons: ^1.0.8 
   get: ^4.7.1
-  google_fonts: ^6.3.0
+  google_fonts: ^6.2.1
   on_audio_query: ^2.9.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
@@ -84,10 +84,7 @@ dependencies:          # To download the APK file # To find the cache directory
   url_launcher: ^6.2.1
   widget_marquee: ^0.0.8
   window_manager: ^0.4.2
-  youtube_explode_dart:
-    git:
-      url: https://github.com/anandnet/youtube_explode_dart.git
-      ref: 1d9ec9baa806705b1d859260eeb389ec28c6b024
+  youtube_explode_dart: ^2.5.3
 dev_dependencies:
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -136,3 +133,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+  # 🟢 FORCE BLEEDING-EDGE YOUTUBE EXTRACTOR 🟢
+# This forces Flutter to ignore the outdated pub.dev version and grab the 
+# latest GitHub commits where the maintainer is fighting the YouTube block.
+# ... your normal dependencies above ...
+
+# 🟢 FORCE GOOGLE_FONTS TO THE STABLE VERSION 🟢
