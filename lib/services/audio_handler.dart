@@ -276,23 +276,23 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
     queue.add(newQueue);
   }
 
-      AudioSource _createAudioSource(MediaItem mediaItem) {
+    AudioSource _createAudioSource(MediaItem mediaItem) {
     final url = mediaItem.extras!['url'] as String;
     
-    // 🟢 READ THE USER AGENT THAT MATCHES THE EXTRACTION CLIENT 🟢
-    final userAgent = mediaItem.extras!['userAgent'] as String? ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+    // 🟢 UPGRADED TO A NEWER, MORE ACCEPTED ANDROID CLIENT VERSION 🟢
+    final userAgent = mediaItem.extras!['userAgent'] as String? ?? 'com.google.android.youtube/19.28.39 (Linux; U; Android 14) gzip';
 
     final Map<String, String> ytHeaders = {
-      'User-Agent': userAgent, // 🟢 THIS PREVENTS THE 403 FORBIDDEN ERROR 🟢
+      'User-Agent': userAgent,
+      'Accept': '*/*',
+      'Accept-Language': 'en-US,en;q=0.9',
       'Referer': 'https://www.youtube.com/',
       'Origin': 'https://www.youtube.com',
-      'Accept': '*/*',
     };
 
     printINFO("🔥 [EXO] Playing URL: $url");
     printINFO("🔥 [EXO] Using User-Agent: $userAgent");
     
-    // Force standard URI playback to ensure headers are applied correctly
     isPlayingUsingLockCachingSource = false;
     return AudioSource.uri(
       Uri.tryParse(url)!,
@@ -300,7 +300,6 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
       headers: url.startsWith("http") ? ytHeaders : null, 
     );
   }
-
   @override
   // ignore: avoid_renaming_method_parameters
   Future<void> removeQueueItem(MediaItem mediaItem_) async {

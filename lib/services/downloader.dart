@@ -162,13 +162,15 @@ class Downloader extends GetxService {
     final totalBytes = requiredAudioStream.size;
 
     // 🟢 THE FIX: Add the User-Agent headers to bypass the 403 Forbidden on download! 🟢
+        // 🟢 BULLETPROOF DOWNLOAD REQUEST 🟢
+       // 🟢 BULLETPROOF DOWNLOAD REQUEST WITH DETECTIVE LOGGING 🟢
     _dio.download(
       requiredAudioStream.url,
       filePath,
       options: Options(
+        validateStatus: (status) => true, // Allows us to see 403/404 instead of crashing
         headers: {
-          "Range": 'bytes=0-$totalBytes',
-          "User-Agent": requiredAudioStream.userAgent, // 🟢 THE SECRET PASSWORD
+          "User-Agent": requiredAudioStream.userAgent,
           "Referer": "https://www.youtube.com/",
           "Origin": "https://www.youtube.com",
           "Accept": "*/*",
@@ -179,8 +181,33 @@ class Downloader extends GetxService {
         songDownloadingProgress.value = ((count / total) * 100).toInt();
       },
     ).then(
-      (value) async {
+      (response) async {
+        // 🟢 LOG THE EXACT STATUS CODE 🟢
+        printINFO("📥 [DOWNLOADER] Server responded with status code: ${response.statusCode}");
+
+        if (response.statusCode != 200) {
+          printINFO("⚠️ [DOWNLOADER] Download rejected by server. Status: ${response.statusCode}");
+          final file = File(filePath);
+          if (await file.exists()) await file.delete();
+          throw Exception("Server returned ${response.statusCode}");
+        }
+
+        // 🟢 LOG THE EXACT FILE SIZE 🟢
+        final file = File(filePath);
+        if (await file.exists()) {
+          final fileSize = await file.length();
+          printINFO("📥 [DOWNLOADER] Downloaded file size: $fileSize bytes");
+          
+          if (fileSize < 50000) { 
+            printINFO("⚠️ [DOWNLOADER] File is too small ($fileSize bytes). It's likely an HTML error page, not audio. Deleting.");
+            await file.delete();
+            throw Exception("Downloaded file is corrupted or too small");
+          }
+        }
+
+        // ... (KEEP THE REST OF YOUR TAGGING AND HIVE SAVING CODE EXACTLY AS IT WAS) ...
         try {
+           // [Paste your existing tagging and Hive saving code here]
           String? year;
           try {
             if (song.extras?['year'] != null) {
@@ -220,7 +247,7 @@ class Downloader extends GetxService {
             printERROR("⚠️ [DOWNLOADER] Hive save failed (file is still on disk): $hiveError");
           }
           
-          printINFO("Downloaded successfully");
+          printINFO("✅ Downloaded successfully");
 
           final trackDetails = (song.extras?['trackDetails'])?.toString().split("/");
           final int? trackNumber = (trackDetails != null && trackDetails.isNotEmpty) ? int.tryParse(trackDetails[0]) : null;
@@ -228,7 +255,6 @@ class Downloader extends GetxService {
 
           try {
             final imageUrl = song.artUri?.toString() ?? "";
-            
             if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
               Uint8List? imageBytes;
               try {
@@ -252,21 +278,13 @@ class Downloader extends GetxService {
                     albumArtist: song.artist,
                     genre: song.genre,
                     pictures: [Picture(bytes: imageBytes, mimeType: mimeType, pictureType: PictureType.coverFront)]);
-
                 await AudioTags.write(filePath, tag);
                 printINFO("✅ [DOWNLOADER] AudioTags written successfully!");
               } else {
                 Tag tagNoPic = Tag(
-                    title: song.title,
-                    trackArtist: song.artist,
-                    album: song.album,
-                    year: int.tryParse(year ?? ""),
-                    trackNumber: trackNumber,
-                    trackTotal: totalTracks,
-                    albumArtist: song.artist,
-                    genre: song.genre,
-                    pictures: const []);
-                
+                    title: song.title, trackArtist: song.artist, album: song.album,
+                    year: int.tryParse(year ?? ""), trackNumber: trackNumber, trackTotal: totalTracks,
+                    albumArtist: song.artist, genre: song.genre, pictures: const []);
                 await AudioTags.write(filePath, tagNoPic);
                 printINFO("✅ [DOWNLOADER] AudioTags written (without cover art)!");
               }
@@ -285,13 +303,10 @@ class Downloader extends GetxService {
 
         } catch (e, stackTrace) {
           printERROR("⚠️ [DOWNLOADER] Post-download processing failed: $e");
-          printERROR(stackTrace);
           if (Get.context != null) {
             ScaffoldMessenger.of(Get.context!).showSnackBar(snackbar(
                 Get.context!, "File saved, but metadata tagging failed.",
-                size: SanckBarSize.MEDIUM,
-                duration: const Duration(seconds: 2),
-                top: !GetPlatform.isDesktop));
+                size: SanckBarSize.MEDIUM, duration: const Duration(seconds: 2), top: !GetPlatform.isDesktop));
           }
         } finally {
           complete.complete();
@@ -299,12 +314,15 @@ class Downloader extends GetxService {
       },
     ).onError(
       (error, stackTrace) {
+        // 🟢 CLEAN UP CORRUPTED FILE ON ERROR 🟢
+        File(filePath).exists().then((exists) {
+          if (exists) File(filePath).delete();
+        });
+        
         if (Get.context != null) {
           ScaffoldMessenger.of(Get.context!).showSnackBar(snackbar(
-              Get.context!, "downloadError3".tr,
-              size: SanckBarSize.BIG,
-              duration: const Duration(seconds: 2),
-              top: !GetPlatform.isDesktop));
+              Get.context!, "Download failed. Please try again.".tr,
+              size: SanckBarSize.BIG, duration: const Duration(seconds: 2), top: !GetPlatform.isDesktop));
         }
         printINFO("Downloading failed due to network/stream error! Please try again");
         complete.complete();

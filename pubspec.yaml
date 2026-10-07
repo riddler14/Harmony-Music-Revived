@@ -85,6 +85,7 @@ dependencies:          # To download the APK file # To find the cache directory
   widget_marquee: ^0.0.8
   window_manager: ^0.4.2
   youtube_explode_dart: ^2.5.3
+  yt_extractor: ^0.1.0 # 🟢 THE SIMPMUSIC TACTIC: Wraps NewPipe Extractor 🟢
 dev_dependencies:
 
   # The "flutter_lints" package below contains a set of recommended lints to

@@ -19,20 +19,20 @@ class HMStreamingData {
 
   Audio? get audio => qualityIndex == 0 ? lowQualityAudio : highQualityAudio;
 
-  factory HMStreamingData.fromJson(json) {
-    if(!json['playable']) {
-      return HMStreamingData(
-        playable: false,
-        statusMSG: json['statusMSG'],
-      );
-    }
-    final lowQualityAudio = Audio.fromJson(json['lowQualityAudio']);
-    final highQualityAudio = Audio.fromJson(json['highQualityAudio']);
+   factory HMStreamingData.fromJson(Map<dynamic, dynamic> json) {
+    // 🟢 SAFELY CAST THE DYNAMIC MAP TO MAP<STRING, DYNAMIC> 🟢
+    final Map<String, dynamic> data = Map<String, dynamic>.from(json);
+
     return HMStreamingData(
-        playable: json['playable'],
-        statusMSG: json['statusMSG'],
-        lowQualityAudio: lowQualityAudio,
-        highQualityAudio: highQualityAudio);
+      playable: data['playable'] as bool? ?? false,
+      statusMSG: data['statusMSG'] as String? ?? '',
+      lowQualityAudio: data['lowQualityAudio'] != null 
+          ? Audio.fromJson(Map<String, dynamic>.from(data['lowQualityAudio'])) 
+          : null,
+      highQualityAudio: data['highQualityAudio'] != null 
+          ? Audio.fromJson(Map<String, dynamic>.from(data['highQualityAudio'])) 
+          : null,
+    );
   }
 
   Map<String, dynamic> toJson() => {

@@ -265,6 +265,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.2"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: "3bce007a596ff8b3119c45d68aaef631272537c03d30e5d4534dd24bf4c5eaa2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   fake_async:
     dependency: transitive
     description:
@@ -1424,6 +1432,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.5.3"
+  yt_extractor:
+    dependency: "direct main"
+    description:
+      name: yt_extractor
+      sha256: afc671acf66cefffac403b3be5fd994c6cc58d581973e418e6be82908726adf4
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
 sdks:
   dart: ">=3.12.0 <4.0.0"
   flutter: ">=3.44.0"
