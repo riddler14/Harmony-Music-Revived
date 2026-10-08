@@ -25,7 +25,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # 🟢 MAKE SURE THIS MATCHES YOUR LOCAL 'flutter --version'! 🟢
           flutter-version: '3.44.1' 
           channel: 'stable'
           
@@ -44,20 +43,31 @@ jobs:
         
       - name: Fix on_audio_query_android Manifest for CI
         run: |
-          # This removes the deprecated 'package' attribute that newer AGP versions reject
           sed -i 's/ *package="com\.lucasjosino\.on_audio_query"//g' ~/.pub-cache/hosted/pub.dev/on_audio_query_android-1.1.0/android/src/main/AndroidManifest.xml
           echo "✅ Manifest fixed for CI runner!"
       
       - name: Build Signed APK
         run: flutter build apk --release --android-skip-build-dependency-validation
+
+      # 🟢 NEW: DEBUG STEP TO VERIFY APK EXISTS 🟢
+      - name: Verify APK exists before release
+        run: |
+          echo "🔍 Checking for APK..."
+          ls -la build/app/outputs/flutter-apk/
+          if [ ! -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+            echo "❌ ERROR: app-release.apk not found! Build may have failed or output a different name."
+            exit 1
+          fi
+          echo "✅ APK found! Proceeding to release..."
         
       - name: Create Release and Upload APK
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@v1.14.0 # 🟢 PINNED TO STABLE VERSION 🟢
         with:
           artifacts: "build/app/outputs/flutter-apk/app-release.apk"
-          tag: "v${{ github.run_number }}" 
+          tag: "v1.0.${{ github.run_number }}" # 🟢 ADDED '1.0.' PREFIX FOR CLEANER SEMANTIC VERSIONING 🟢
           name: "Harmony Revived Build ${{ github.run_number }}"
           body: "Automated signed build."
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
           replacesArtifacts: true
+          makeLatest: true # 🟢 REQUIRED FOR MODERN GITHUB API STABILITY 🟢
