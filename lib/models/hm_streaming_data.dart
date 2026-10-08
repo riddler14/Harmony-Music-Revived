@@ -19,7 +19,7 @@ class HMStreamingData {
 
   Audio? get audio => qualityIndex == 0 ? lowQualityAudio : highQualityAudio;
 
-   factory HMStreamingData.fromJson(Map<dynamic, dynamic> json) {
+    factory HMStreamingData.fromJson(Map<dynamic, dynamic> json) {
     // 🟢 SAFELY CAST THE DYNAMIC MAP TO MAP<STRING, DYNAMIC> 🟢
     final Map<String, dynamic> data = Map<String, dynamic>.from(json);
 
