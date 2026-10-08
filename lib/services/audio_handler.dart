@@ -824,15 +824,17 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
       {bool generateNewUrl = false, bool offlineReplacementUrl = false}) async {
     printINFO("Requested id : $songId");
     final songDownloadsBox = Hive.box("SongDownloads");
-    if (!offlineReplacementUrl &&
-        (await Hive.openBox("SongsCache")).containsKey(songId)) {
+    
+    if (!offlineReplacementUrl && (await Hive.openBox("SongsCache")).containsKey(songId)) {
       printINFO("Got Song from cachedbox ($songId)");
-      // if contains stream Info
       final streamInfo = Hive.box("SongsCache").get(songId)["streamInfo"];
       Audio? cacheAudioPlaceholder;
-      if (streamInfo != null && streamInfo.isNotEmpty) {
-        streamInfo[1]['url'] = "file://$_cacheDir/cachedSongs/$songId.mp3";
-        cacheAudioPlaceholder = Audio.fromJson(streamInfo[1]);
+      
+      if (streamInfo != null && streamInfo is List && streamInfo.length > 1 && streamInfo[1] is Map) {
+        // 🟢 SAFE CAST FOR HIVE MAP 🟢
+        final safeMap = Map<String, dynamic>.from(streamInfo[1] as Map);
+        safeMap['url'] = "file://$_cacheDir/cachedSongs/$songId.mp3";
+        cacheAudioPlaceholder = Audio.fromJson(safeMap);
       } else {
         cacheAudioPlaceholder = Audio(
             audioCodec: Codec.mp4a,
@@ -849,13 +851,16 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
           statusMSG: "OK",
           lowQualityAudio: cacheAudioPlaceholder,
           highQualityAudio: cacheAudioPlaceholder);
+          
     } else if (!offlineReplacementUrl && songDownloadsBox.containsKey(songId)) {
-      final song = songDownloadsBox.get(songId);
+      final song = songDownloadsBox.get(songId) as Map;
       final streamInfoJson = song["streamInfo"];
       Audio? audio;
-      final path = song['url'];
-      if (streamInfoJson != null && streamInfoJson.isNotEmpty) {
-        audio = Audio.fromJson(streamInfoJson[1]);
+      final path = song['url'] as String;
+      
+      if (streamInfoJson != null && streamInfoJson is List && streamInfoJson.length > 1 && streamInfoJson[1] is Map) {
+        // 🟢 SAFE CAST FOR HIVE MAP 🟢
+        audio = Audio.fromJson(Map<String, dynamic>.from(streamInfoJson[1] as Map));
       } else {
         audio = Audio(
             itag: 140,
@@ -873,42 +878,56 @@ class MyAudioHandler extends BaseAudioHandler with GetxServiceMixin {
           highQualityAudio: audio,
           lowQualityAudio: audio);
 
-      if (path.contains(
-          "${Get.find<SettingsScreenController>().supportDirPath}/Music")) {
+      if (path.contains("${Get.find<SettingsScreenController>().supportDirPath}/Music")) {
         return streamInfo;
       }
-      //check file access and if file exist in storage
+      
       final status = await PermissionService.getExtStoragePermission();
       if (status && await File(path).exists()) {
         return streamInfo;
       }
-      //in case file doesnot found in storage, song will be played online
+      
       return checkNGetUrl(songId, offlineReplacementUrl: true);
+      
     } else {
-      //check if song stream url is cached and allocate url accordingly
       final songsUrlCacheBox = Hive.box("SongsUrlCache");
       final qualityIndex = Hive.box('AppPrefs').get('streamingQuality') ?? 1;
       HMStreamingData? streamInfo;
+      
       if (songsUrlCacheBox.containsKey(songId) && !generateNewUrl) {
-        final streamInfoJson = songsUrlCacheBox.get(songId);
-        if (streamInfoJson.runtimeType.toString().contains("Map") &&
-            !isExpired(url: (streamInfoJson['lowQualityAudio']['url']))) {
-          printINFO("Got cached Url ($songId)");
-          streamInfo = HMStreamingData.fromJson(streamInfoJson);
+        final cachedData = songsUrlCacheBox.get(songId);
+        
+        // 🟢 SAFE CAST FOR HIVE MAP 🟢
+        if (cachedData is Map) {
+          final streamInfoJson = Map<String, dynamic>.from(cachedData);
+          final lowQuality = streamInfoJson['lowQualityAudio'];
+          
+          if (lowQuality is Map && !isExpired(url: lowQuality['url'] as String? ?? "")) {
+            printINFO("Got cached Url ($songId)");
+            streamInfo = HMStreamingData.fromJson(streamInfoJson);
+          }
         }
       }
 
       if (streamInfo == null) {
         final token = RootIsolateToken.instance;
-        final streamInfoJson =
-            await Isolate.run(() => getStreamInfo(songId, token));
-        streamInfo = HMStreamingData.fromJson(streamInfoJson);
-        if (streamInfo.playable) songsUrlCacheBox.put(songId, streamInfoJson);
+        final dynamic isolateResult = await Isolate.run(() => getStreamInfo(songId, token));
+        
+        // 🟢 SAFE CAST FOR ISOLATE RESULT 🟢
+        if (isolateResult is Map) {
+          final streamInfoJson = Map<String, dynamic>.from(isolateResult);
+          streamInfo = HMStreamingData.fromJson(streamInfoJson);
+          if (streamInfo.playable) songsUrlCacheBox.put(songId, isolateResult);
+        }
       }
 
-      streamInfo.setQualityIndex(qualityIndex as int);
-      return streamInfo;
+      if (streamInfo != null) {
+        streamInfo.setQualityIndex(qualityIndex as int);
+        return streamInfo;
+      }
     }
+    
+    return HMStreamingData(playable: false, statusMSG: "Stream info not found");
   }
 }
 
