@@ -22,7 +22,11 @@ import '../ui/screens/Library/library_controller.dart';
 import 'music_service.dart';
 
 class Downloader extends GetxService {
-  final _dio = Dio();
+  // 🟢 Added generous timeouts so the CDN doesn't drop the connection during slow starts 🟢
+  final _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 300), // 5 minutes for large files
+  ));
   MediaItem? currentSong;
   RxMap<String, List<MediaItem>> playlistQueue = <String, List<MediaItem>>{}.obs;
   final currentPlaylistId = "".obs;
@@ -164,16 +168,19 @@ class Downloader extends GetxService {
     // 🟢 THE FIX: Add the User-Agent headers to bypass the 403 Forbidden on download! 🟢
         // 🟢 BULLETPROOF DOWNLOAD REQUEST 🟢
        // 🟢 BULLETPROOF DOWNLOAD REQUEST WITH DETECTIVE LOGGING 🟢
-    _dio.download(
+       _dio.download(
       requiredAudioStream.url,
       filePath,
       options: Options(
-        validateStatus: (status) => true, // Allows us to see 403/404 instead of crashing
+        validateStatus: (status) => true,
         headers: {
+          "Range": "bytes=0-", // 🟢 THE MAGIC BULLET: Forces CDN to send full file at max speed 🟢
           "User-Agent": requiredAudioStream.userAgent,
           "Referer": "https://www.youtube.com/",
           "Origin": "https://www.youtube.com",
           "Accept": "*/*",
+          "Accept-Encoding": "identity", // Prevents gzip overhead on already compressed m4a/opus
+          "Connection": "keep-alive",
         },
       ),
       onReceiveProgress: (count, total) {
@@ -256,12 +263,19 @@ class Downloader extends GetxService {
           try {
             final imageUrl = song.artUri?.toString() ?? "";
             if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
-              Uint8List? imageBytes;
+                            Uint8List? imageBytes;
               try {
-                final imgResponse = await _dio.get(imageUrl, options: Options(responseType: ResponseType.bytes));
-                imageBytes = imgResponse.data;
+                // 🟢 Read from the disk we ALREADY downloaded it to, instead of hitting the web again! 🟢
+                final thumbnailPath = "${settingsScreenController.supportDirPath}/thumbnails/${song.id}.png";
+                final thumbFile = File(thumbnailPath);
+                if (await thumbFile.exists()) {
+                  imageBytes = await thumbFile.readAsBytes();
+                } else {
+                  final imgResponse = await _dio.get(imageUrl, options: Options(responseType: ResponseType.bytes));
+                  imageBytes = imgResponse.data;
+                }
               } catch (imgError) {
-                printERROR("⚠️ [DOWNLOADER] Failed to download cover art bytes: $imgError");
+                printERROR("⚠️ [DOWNLOADER] Failed to get cover art bytes: $imgError");
               }
 
               final isPng = imageUrl.toLowerCase().endsWith('.png');
