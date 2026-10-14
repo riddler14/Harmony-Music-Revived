@@ -192,13 +192,14 @@ class Downloader extends GetxService {
         // 🟢 LOG THE EXACT STATUS CODE 🟢
         printINFO("📥 [DOWNLOADER] Server responded with status code: ${response.statusCode}");
 
-        if (response.statusCode != 200) {
+                // 🟢 206 means "Partial Content". Because we used the "Range" header to bypass throttling, 
+        // the server correctly sends a 206 instead of a 200. We must accept both! 🟢
+        if (response.statusCode != 200 && response.statusCode != 206) {
           printINFO("⚠️ [DOWNLOADER] Download rejected by server. Status: ${response.statusCode}");
           final file = File(filePath);
           if (await file.exists()) await file.delete();
           throw Exception("Server returned ${response.statusCode}");
         }
-
         // 🟢 LOG THE EXACT FILE SIZE 🟢
         final file = File(filePath);
         if (await file.exists()) {
